@@ -33,6 +33,28 @@ def health():
     return {'status': 'ok', 'version': '2.0.0'}
 
 
+# ========================================
+# PROJEKT ROUTES (Kacheln)
+# ========================================
+
+@app.route('/projekt/neu')
+def projekt_neu():
+    """Kachel 1: Neues Projekt erstellen (Phase 2)"""
+    return render_template('projekt_neu.html')
+
+
+@app.route('/projekt/phasen')
+def projekt_phasen():
+    """Kachel 2: Phasen & Aufträge generieren (Phase 3)"""
+    return render_template('projekt_phasen.html')
+
+
+@app.route('/projekt/liste')
+def projekt_liste():
+    """Kachel 3: Projekt öffnen und steuern (Phase 4)"""
+    return render_template('projekt_liste.html')
+
+
 if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5000))
