@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS OVERLORD v2.0</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>NEXUS OVERLORD</h1>
+            <p>KI-Orchestrierungs-Tool v2.0</p>
+        </header>
+
+        <main>
+            <div class="kacheln">
+                <!-- Kachel 1: Neues Projekt -->
+                <div class="kachel">
+                    <div class="kachel-icon">🆕</div>
+                    <h2>NEUES PROJEKT</h2>
+                    <p>Multi-Agent Workflow mit Gemini 3 Pro + Sonnet 4.5</p>
+                    <button class="btn-primary">Projekt erstellen</button>
+                </div>
+
+                <!-- Kachel 2: Phasen & Aufträge -->
+                <div class="kachel">
+                    <div class="kachel-icon">📋</div>
+                    <h2>PHASEN & AUFTRÄGE</h2>
+                    <p>Enterprise-Plan in Phasen aufteilen</p>
+                    <button class="btn-primary">Aufträge generieren</button>
+                </div>
+
+                <!-- Kachel 3: Projekt öffnen -->
+                <div class="kachel">
+                    <div class="kachel-icon">📂</div>
+                    <h2>PROJEKT ÖFFNEN</h2>
+                    <p>Bestehende Projekte verwalten</p>
+                    <button class="btn-primary">Projekte anzeigen</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Erstellt mit Claude Code</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

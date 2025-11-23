@@ -31,3 +31,18 @@ Thumbs.db
 # Backups
 backups/
 *.bak
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Flask
+instance/
+.webassets-cache
+
+# Build
+build/
+dist/
+*.egg-info/
