@@ -14,9 +14,11 @@ DATABASE_PATH = os.getenv('DATABASE_PATH', str(BASE_DIR / 'database' / 'nexus.db
 # API Keys
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 
-# KI Models
-GEMINI_MODEL = 'google/gemini-3-pro-preview'
-SONNET_MODEL = 'anthropic/claude-sonnet-4.5'
+# KI Models (OpenRouter IDs)
+# Gemini 3 Pro - Stratege, Überblick, Prüfung
+GEMINI_MODEL = 'google/gemini-2.5-pro-preview-05-06'
+# Claude Sonnet 4.5 - Detailarbeiter, Aufträge, Code
+SONNET_MODEL = 'anthropic/claude-sonnet-4-5-20250514'
 
 # Server
 HOST = os.getenv('HOST', '0.0.0.0')
