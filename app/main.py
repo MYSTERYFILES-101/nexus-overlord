@@ -8,6 +8,8 @@ import os
 from dotenv import load_dotenv
 import threading
 import time
+import markdown2
+import re
 
 # Load environment variables
 load_dotenv()
@@ -170,6 +172,47 @@ def projekt_tracker_status():
 
     html += '</div>'
     return html
+
+
+@app.route('/projekt/ergebnis')
+def projekt_ergebnis():
+    """Ergebnis-Anzeige nach Workflow-Ende (Auftrag 2.4)"""
+    workflow_id = session.get('workflow_id')
+
+    # Get workflow results
+    if workflow_id and workflow_id in workflow_storage:
+        workflow = workflow_storage[workflow_id]
+        status = workflow.get_status()
+
+        enterprise_plan = status.get('final_plan', 'Plan wird noch erstellt...')
+        bewertung = status.get('bewertung', 'Bewertung ausstehend...')
+    else:
+        # Fallback from session
+        enterprise_plan = session.get('enterprise_plan', 'Kein Plan verfügbar')
+        bewertung = session.get('bewertung', 'Keine Bewertung verfügbar')
+
+    # Render markdown
+    plan_html = markdown2.markdown(enterprise_plan, extras=['fenced-code-blocks', 'tables', 'header-ids'])
+
+    # Parse bewertung score
+    score = parse_bewertung_score(bewertung)
+
+    projektname = session.get('projektname', 'Unbenanntes Projekt')
+
+    return render_template('projekt_ergebnis.html',
+                          projektname=projektname,
+                          plan_html=plan_html,
+                          bewertung=bewertung,
+                          score=score)
+
+
+def parse_bewertung_score(bewertung_text):
+    """Extract score from bewertung text (e.g., '8/10' or '8 Sterne')"""
+    match = re.search(r'(\d+)\s*/\s*10|(\d+)\s*[Ss]tern', bewertung_text)
+    if match:
+        score = int(match.group(1) or match.group(2))
+        return min(10, max(0, score))
+    return 5  # Default
 
 
 @app.route('/projekt/phasen')

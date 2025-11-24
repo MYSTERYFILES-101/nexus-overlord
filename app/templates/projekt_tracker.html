@@ -124,12 +124,21 @@
     </div>
 
     <script>
-        // JavaScript für Echtzeit-Updates (wird in Auftrag 2.3 erweitert)
+        // JavaScript für Echtzeit-Updates
         console.log('Live-Tracker geladen');
 
-        // HTMX Event-Listener (optional)
+        // HTMX Event-Listener
         document.body.addEventListener('htmx:afterSwap', function(event) {
             console.log('Tracker aktualisiert');
+
+            // Check if all steps are done (Auftrag 2.4)
+            const doneSteps = document.querySelectorAll('.step-done').length;
+            if (doneSteps === 6) {
+                console.log('Workflow completed! Redirecting...');
+                setTimeout(function() {
+                    window.location.href = '/projekt/ergebnis';
+                }, 2000);  // 2s delay to show completion
+            }
         });
     </script>
 </body>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise-Plan - NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✅ ENTERPRISE-PLAN ERSTELLT</h1>
+            <p>{{ projektname }}</p>
+        </header>
+
+        <main>
+            <div class="ergebnis-container">
+
+                <!-- Enterprise-Plan Box -->
+                <div class="ergebnis-section">
+                    <div class="ergebnis-header">
+                        <h2>📋 Dein Enterprise-Plan</h2>
+                    </div>
+                    <div class="plan-box">
+                        {{ plan_html|safe }}
+                    </div>
+                </div>
+
+                <!-- Bewertung Box -->
+                <div class="ergebnis-section">
+                    <div class="ergebnis-header">
+                        <h2>⭐ Bewertung</h2>
+                    </div>
+                    <div class="bewertung-box">
+                        <!-- Sterne-Anzeige -->
+                        <div class="sterne-display">
+                            {% for i in range(1, 11) %}
+                                {% if i <= score %}
+                                    <span class="stern stern-filled">★</span>
+                                {% else %}
+                                    <span class="stern stern-empty">☆</span>
+                                {% endif %}
+                            {% endfor %}
+                            <span class="score-text">{{ score }}/10</span>
+                        </div>
+
+                        <!-- Bewertungstext -->
+                        <div class="bewertung-text">
+                            {{ bewertung }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="ergebnis-actions">
+                    <a href="/projekt/neu" class="btn btn-secondary">
+                        ↩ Nochmal erstellen
+                    </a>
+                    <a href="/projekt/phasen" class="btn btn-primary">
+                        ✅ Weiter zu Phasen & Aufträge
+                    </a>
+                </div>
+
+            </div>
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Enterprise Multi-Agent Intelligence</p>
+        </footer>
+    </div>
+</body>
+</html>
