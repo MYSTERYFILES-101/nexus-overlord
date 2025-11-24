@@ -642,7 +642,7 @@ def projekt_auftrag(projekt_id):
     Holt nächsten offenen Auftrag und formatiert ihn für Claude Code (Auftrag 4.2)
     Wird per HTMX aufgerufen, gibt HTML für Chat-Container zurück
     """
-    from app.services.database import get_projekt, get_next_open_auftrag, update_auftrag_status
+    from app.services.database import get_projekt, get_next_open_auftrag, update_auftrag_status, save_chat_message
     from app.services.auftrag_formatierer import format_auftrag_for_claude, get_no_auftraege_message
 
     # Projekt laden
@@ -656,10 +656,12 @@ def projekt_auftrag(projekt_id):
     auftrag = get_next_open_auftrag(projekt_id)
 
     if not auftrag:
-        # Keine offenen Aufträge
+        # Keine offenen Aufträge - in Chat loggen
+        msg = get_no_auftraege_message()
+        save_chat_message(projekt_id, 'SYSTEM', msg)
         return render_template('partials/chat_message.html',
                              message_type='info',
-                             content=get_no_auftraege_message())
+                             content=msg)
 
     # Auftrag formatieren (ohne AI für Schnelligkeit, AI kann später aktiviert werden)
     formatted_auftrag = format_auftrag_for_claude(auftrag, projekt)
@@ -667,10 +669,14 @@ def projekt_auftrag(projekt_id):
     # Status auf "in_arbeit" setzen
     update_auftrag_status(auftrag['id'], 'in_arbeit')
 
+    # In Chat-History speichern
+    auftrag_name = f"{auftrag.get('phase_nummer', 1)}.{auftrag.get('nummer', 1)} - {auftrag.get('name', 'Auftrag')}"
+    save_chat_message(projekt_id, 'AUFTRAG', f"Auftrag geladen: {auftrag_name}", auftrag['id'])
+
     # Als Chat-Nachricht zurückgeben
     return render_template('partials/chat_message.html',
                          message_type='auftrag',
-                         auftrag_name=f"{auftrag.get('phase_nummer', 1)}.{auftrag.get('nummer', 1)} - {auftrag.get('name', 'Auftrag')}",
+                         auftrag_name=auftrag_name,
                          content=formatted_auftrag,
                          auftrag_id=auftrag['id'])
 
@@ -701,7 +707,7 @@ def projekt_fehler(projekt_id):
     Analysiert einen Fehler und gibt Lösung zurück (Auftrag 4.3)
     Prüft DB nach bekannten Fehlern, sonst KI-Analyse
     """
-    from app.services.database import get_projekt
+    from app.services.database import get_projekt, save_chat_message
     from app.services.fehler_analyzer import analyze_fehler
 
     # Projekt laden
@@ -721,6 +727,9 @@ def projekt_fehler(projekt_id):
 
     # Fehler analysieren
     result = analyze_fehler(fehler_text, projekt.get('name', 'NEXUS OVERLORD'))
+
+    # In Chat-History speichern
+    save_chat_message(projekt_id, 'FEHLER', f"Fehler analysiert: {result['kategorie']}")
 
     # Als Chat-Nachricht zurückgeben
     return render_template('partials/fehler_response.html',
@@ -753,7 +762,7 @@ def projekt_analysieren(projekt_id):
     Analysiert den Projekt-Status und zeigt Zusammenfassung (Auftrag 4.4)
     Gemini 3 Pro analysiert, Opus 4.5 erstellt lesbare Zusammenfassung
     """
-    from app.services.database import get_projekt
+    from app.services.database import get_projekt, save_chat_message
     from app.services.projekt_analyzer import analyze_projekt
 
     # Projekt laden
@@ -770,6 +779,10 @@ def projekt_analysieren(projekt_id):
         return render_template('partials/chat_message.html',
                              message_type='error',
                              content=result.get('message', 'Analyse fehlgeschlagen'))
+
+    # In Chat-History speichern
+    fortschritt = result['daten'].get('fortschritt', 0)
+    save_chat_message(projekt_id, 'ANALYSE', f"Projekt-Analyse: {fortschritt}% Fortschritt")
 
     # Als Analyse-Nachricht zurückgeben
     return render_template('partials/analyse_response.html',
@@ -921,6 +934,89 @@ def uebergabe_loeschen(projekt_id, uebergabe_id):
         return jsonify({'success': True, 'message': 'Übergabe gelöscht'})
     else:
         return jsonify({'success': False, 'error': 'Übergabe nicht gefunden'}), 404
+
+
+# ========================================
+# CHAT ROUTES (Auftrag 4.6)
+# ========================================
+
+@app.route('/projekt/<int:projekt_id>/chat', methods=['GET'])
+def chat_history(projekt_id):
+    """
+    Lädt Chat-Verlauf eines Projekts (Auftrag 4.6)
+    """
+    from app.services.database import get_projekt, get_chat_messages
+
+    projekt = get_projekt(projekt_id)
+    if not projekt:
+        return jsonify({'success': False, 'error': 'Projekt nicht gefunden'}), 404
+
+    messages = get_chat_messages(projekt_id, limit=100)
+
+    return render_template('partials/chat_history.html',
+                         messages=messages,
+                         projekt=projekt)
+
+
+@app.route('/projekt/<int:projekt_id>/chat', methods=['POST'])
+def chat_send(projekt_id):
+    """
+    Sendet eine Chat-Nachricht (Auftrag 4.6)
+    """
+    from app.services.database import get_projekt, save_chat_message, get_current_auftrag_for_projekt
+
+    projekt = get_projekt(projekt_id)
+    if not projekt:
+        return jsonify({'success': False, 'error': 'Projekt nicht gefunden'}), 404
+
+    # Nachricht aus Request
+    inhalt = request.form.get('inhalt', '').strip()
+    typ = request.form.get('typ', 'USER').upper()
+
+    if not inhalt:
+        return jsonify({'success': False, 'error': 'Nachricht darf nicht leer sein'}), 400
+
+    # Gültige Typen
+    valid_types = ['USER', 'AUFTRAG', 'FEHLER', 'ANALYSE', 'SYSTEM', 'RUECKMELDUNG']
+    if typ not in valid_types:
+        typ = 'USER'
+
+    # Aktuellen Auftrag holen (falls vorhanden)
+    aktueller_auftrag = get_current_auftrag_for_projekt(projekt_id)
+    auftrag_id = aktueller_auftrag['id'] if aktueller_auftrag else None
+
+    # Nachricht speichern
+    message_id = save_chat_message(projekt_id, typ, inhalt, auftrag_id)
+
+    # Timestamp für Response
+    timestamp = datetime.now().strftime('%H:%M')
+
+    return jsonify({
+        'success': True,
+        'message_id': message_id,
+        'typ': typ,
+        'inhalt': inhalt,
+        'timestamp': timestamp
+    })
+
+
+@app.route('/projekt/<int:projekt_id>/chat/log', methods=['POST'])
+def chat_log(projekt_id):
+    """
+    Loggt eine System-Nachricht im Chat (für Button-Aktionen) (Auftrag 4.6)
+    """
+    from app.services.database import save_chat_message
+
+    inhalt = request.form.get('inhalt', '').strip()
+    typ = request.form.get('typ', 'SYSTEM').upper()
+
+    if not inhalt:
+        return jsonify({'success': False, 'error': 'Inhalt fehlt'}), 400
+
+    # Nachricht speichern
+    message_id = save_chat_message(projekt_id, typ, inhalt)
+
+    return jsonify({'success': True, 'message_id': message_id})
 
 
 if __name__ == '__main__':

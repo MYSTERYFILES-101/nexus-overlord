@@ -1,0 +1,51 @@
+{#
+NEXUS OVERLORD v2.0 - Chat History Template (Auftrag 4.6)
+Zeigt alle Chat-Nachrichten eines Projekts an
+#}
+
+{% if messages %}
+    {% for msg in messages %}
+    <div class="chat-message chat-{{ msg.typ|lower }}" data-message-id="{{ msg.id }}">
+        <div class="message-header">
+            <div class="message-info">
+                {% if msg.typ == 'USER' %}
+                <span class="message-icon">&#128100;</span>
+                <span class="message-sender">Du</span>
+                {% elif msg.typ == 'AUFTRAG' %}
+                <span class="message-icon">&#128203;</span>
+                <span class="message-sender">Auftrag</span>
+                {% elif msg.typ == 'FEHLER' %}
+                <span class="message-icon">&#9888;</span>
+                <span class="message-sender">Fehler-Analyse</span>
+                {% elif msg.typ == 'ANALYSE' %}
+                <span class="message-icon">&#128202;</span>
+                <span class="message-sender">Analyse</span>
+                {% elif msg.typ == 'SYSTEM' %}
+                <span class="message-icon">&#9881;</span>
+                <span class="message-sender">System</span>
+                {% elif msg.typ == 'RUECKMELDUNG' %}
+                <span class="message-icon">&#128172;</span>
+                <span class="message-sender">Rückmeldung</span>
+                {% else %}
+                <span class="message-icon">&#128172;</span>
+                <span class="message-sender">{{ msg.typ }}</span>
+                {% endif %}
+            </div>
+            <span class="message-time">{{ msg.created_at[11:16] if msg.created_at else '' }}</span>
+        </div>
+        <div class="message-content">{{ msg.inhalt }}</div>
+        {% if msg.auftrag_nummer %}
+        <div class="message-auftrag-link">
+            <span class="link-icon">&#128279;</span>
+            <span>Auftrag {{ msg.phase_nummer }}.{{ msg.auftrag_nummer }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="chat-leer">
+        <div class="chat-leer-icon">&#128172;</div>
+        <div class="chat-leer-text">Noch keine Nachrichten</div>
+        <div class="chat-leer-hint">Klicke auf einen Button um zu starten</div>
+    </div>
+{% endif %}

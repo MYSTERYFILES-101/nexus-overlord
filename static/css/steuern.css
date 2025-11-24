@@ -2091,6 +2091,215 @@
     50% { opacity: 0.5; }
 }
 
+/* ========================================
+   CHAT-NACHRICHTEN TYPEN (Auftrag 4.6)
+   ======================================== */
+
+/* Gemeinsame Chat-Message Styles */
+.chat-message {
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    animation: fadeInMessage 0.3s ease;
+}
+
+.chat-message .message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.chat-message .message-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-message .message-icon {
+    font-size: 1.2rem;
+}
+
+.chat-message .message-sender {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.chat-message .message-time {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.chat-message .message-content {
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.chat-message .message-auftrag-link {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 0.85rem;
+    color: #667eea;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* USER - Blau */
+.chat-user {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    margin-left: 40px;
+}
+
+.chat-user .message-sender {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.chat-user .message-time {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chat-user .message-icon {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* AUFTRAG - Grün */
+.chat-auftrag {
+    background: #e8f5e9;
+    border-left: 4px solid #28a745;
+}
+
+.chat-auftrag .message-icon {
+    color: #28a745;
+}
+
+.chat-auftrag .message-sender {
+    color: #28a745;
+}
+
+/* FEHLER - Rot */
+.chat-fehler {
+    background: #ffebee;
+    border-left: 4px solid #dc3545;
+}
+
+.chat-fehler .message-icon {
+    color: #dc3545;
+}
+
+.chat-fehler .message-sender {
+    color: #dc3545;
+}
+
+/* ANALYSE - Lila */
+.chat-analyse {
+    background: #f3e5f5;
+    border-left: 4px solid #9c27b0;
+}
+
+.chat-analyse .message-icon {
+    color: #9c27b0;
+}
+
+.chat-analyse .message-sender {
+    color: #9c27b0;
+}
+
+/* SYSTEM - Grau */
+.chat-system {
+    background: #f5f5f5;
+    border-left: 4px solid #6c757d;
+    margin-right: 40px;
+}
+
+.chat-system .message-icon {
+    color: #6c757d;
+}
+
+.chat-system .message-sender {
+    color: #6c757d;
+}
+
+/* RUECKMELDUNG - Orange */
+.chat-rueckmeldung {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+    margin-left: 40px;
+}
+
+.chat-rueckmeldung .message-icon {
+    color: #ff9800;
+}
+
+.chat-rueckmeldung .message-sender {
+    color: #e65100;
+}
+
+/* Chat Loading State */
+.chat-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.chat-loading .loading-icon {
+    font-size: 2rem;
+    animation: pulse 1s infinite;
+    margin-bottom: 10px;
+}
+
+/* Chat Leer State */
+.chat-leer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.chat-leer-icon {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 15px;
+}
+
+.chat-leer-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.chat-leer-hint {
+    font-size: 0.9rem;
+}
+
+/* Responsive Chat Messages */
+@media (max-width: 768px) {
+    .chat-user,
+    .chat-rueckmeldung {
+        margin-left: 0;
+    }
+
+    .chat-system {
+        margin-right: 0;
+    }
+
+    .chat-message {
+        padding: 12px;
+    }
+
+    .chat-message .message-content {
+        font-size: 0.95rem;
+    }
+}
+
 /* FadeOut Animation */
 @keyframes fadeOut {
     from { opacity: 1; transform: translateX(0); }

@@ -156,27 +156,12 @@
             {% endif %}
 
             <!-- CHAT-CONTAINER -->
-            <div class="chat-container" id="chatContainer">
-                <div class="chat-leer">
-                    <div class="chat-leer-icon">&#128172;</div>
-                    <h3>Willkommen im Steuerungsbereich</h3>
-                    <p>Nutze die Buttons unten, um Aufträge zu starten, Fehler zu melden oder das Projekt zu analysieren.</p>
-                    <div class="chat-tipps">
-                        <div class="tipp-item">
-                            <span class="tipp-icon">&#128196;</span>
-                            <span><strong>Auftrag:</strong> Nächsten Auftrag starten</span>
-                        </div>
-                        <div class="tipp-item">
-                            <span class="tipp-icon">&#128721;</span>
-                            <span><strong>Fehler:</strong> Problem melden</span>
-                        </div>
-                        <div class="tipp-item">
-                            <span class="tipp-icon">&#128269;</span>
-                            <span><strong>Analysieren:</strong> KI-Analyse starten</span>
-                        </div>
-                    </div>
+            <div class="chat-container" id="chatContainer" data-projekt-id="{{ projekt.id }}">
+                <!-- Chat-History wird beim Laden via JS eingefügt -->
+                <div class="chat-loading">
+                    <span class="loading-icon">&#8987;</span>
+                    <span>Chat wird geladen...</span>
                 </div>
-                <!-- Chat-Nachrichten werden hier dynamisch eingefügt -->
             </div>
 
             <!-- EINGABEBEREICH -->
@@ -185,7 +170,7 @@
                     <textarea
                         id="userInput"
                         class="eingabe-feld"
-                        placeholder="Schreibe hier eine Nachricht oder nutze die Buttons unten..."
+                        placeholder="Nachricht eingeben oder Rückmeldung einfügen..."
                         rows="2"
                     ></textarea>
                     <button class="eingabe-senden" id="sendBtn" title="Senden">

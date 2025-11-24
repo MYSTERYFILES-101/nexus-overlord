@@ -769,3 +769,110 @@ def get_current_auftrag_for_projekt(projekt_id: int) -> dict:
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+# ========================================
+# CHAT-FUNKTIONEN (Auftrag 4.6)
+# ========================================
+
+def get_chat_messages(projekt_id: int, limit: int = 50) -> list:
+    """
+    Holt Chat-Nachrichten eines Projekts.
+
+    Args:
+        projekt_id: Projekt-ID
+        limit: Max Anzahl Nachrichten
+
+    Returns:
+        list: Chat-Nachrichten sortiert nach Zeit (älteste zuerst)
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            cm.id,
+            cm.projekt_id,
+            cm.auftrag_id,
+            cm.typ,
+            cm.inhalt,
+            cm.created_at,
+            a.nummer as auftrag_nummer,
+            a.name as auftrag_name,
+            p.nummer as phase_nummer
+        FROM chat_messages cm
+        LEFT JOIN auftraege a ON cm.auftrag_id = a.id
+        LEFT JOIN phasen p ON a.phase_id = p.id
+        WHERE cm.projekt_id = ?
+        ORDER BY cm.created_at ASC
+        LIMIT ?
+    """, (projekt_id, limit))
+
+    messages = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return messages
+
+
+def save_chat_message(projekt_id: int, typ: str, inhalt: str, auftrag_id: int = None) -> int:
+    """
+    Speichert eine Chat-Nachricht.
+
+    Args:
+        projekt_id: Projekt-ID
+        typ: Nachrichtentyp (USER, AUFTRAG, FEHLER, ANALYSE, SYSTEM, RUECKMELDUNG)
+        inhalt: Nachrichteninhalt
+        auftrag_id: Optional - Auftrag-ID für Verknüpfung
+
+    Returns:
+        int: ID der neuen Nachricht
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO chat_messages (projekt_id, auftrag_id, typ, inhalt, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+    """, (projekt_id, auftrag_id, typ, inhalt))
+
+    message_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return message_id
+
+
+def delete_chat_messages(projekt_id: int) -> bool:
+    """
+    Löscht alle Chat-Nachrichten eines Projekts.
+
+    Args:
+        projekt_id: Projekt-ID
+
+    Returns:
+        bool: True wenn erfolgreich
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM chat_messages WHERE projekt_id = ?", (projekt_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def get_chat_message_count(projekt_id: int) -> int:
+    """
+    Zählt Chat-Nachrichten eines Projekts.
+
+    Args:
+        projekt_id: Projekt-ID
+
+    Returns:
+        int: Anzahl Nachrichten
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) as count FROM chat_messages WHERE projekt_id = ?", (projekt_id,))
+    count = cursor.fetchone()['count']
+    conn.close()
+    return count

@@ -1,5 +1,5 @@
 /**
- * NEXUS OVERLORD v2.0 - Steuern JavaScript (Auftrag 4.1 + 4.2)
+ * NEXUS OVERLORD v2.0 - Steuern JavaScript (Auftrag 4.6)
  * Interaktionen für Kachel 3: Projekt steuern
  */
 
@@ -35,6 +35,28 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.appendChild(overlay);
 
     // ========================================
+    // CHAT HISTORY LADEN (Auftrag 4.6)
+    // ========================================
+
+    function loadChatHistory() {
+        if (!projektId) return;
+
+        fetch(`/projekt/${projektId}/chat`)
+            .then(response => response.text())
+            .then(html => {
+                chatContainer.innerHTML = html;
+                scrollToBottom();
+            })
+            .catch(error => {
+                console.error('Fehler beim Laden des Chat-Verlaufs:', error);
+                chatContainer.innerHTML = '<div class="chat-leer"><div class="chat-leer-icon">&#128172;</div><div class="chat-leer-text">Noch keine Nachrichten</div><div class="chat-leer-hint">Klicke auf einen Button um zu starten</div></div>';
+            });
+    }
+
+    // Chat beim Laden initialisieren
+    loadChatHistory();
+
+    // ========================================
     // SIDEBAR TOGGLE (Mobile)
     // ========================================
 
@@ -68,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ========================================
-    // EINGABEFELD
+    // EINGABEFELD (Auftrag 4.6)
     // ========================================
 
     // Auto-resize Textarea
@@ -96,15 +118,43 @@ document.addEventListener('DOMContentLoaded', function() {
         const message = userInput.value.trim();
         if (!message) return;
 
-        // Nachricht zum Chat hinzufügen
-        addChatMessage('user', message);
+        // Nachrichtentyp erkennen (Rückmeldung wenn es wie Code-Output aussieht)
+        let typ = 'USER';
+        if (message.includes('ERLEDIGT') || message.includes('erledigt') ||
+            message.includes('FERTIG') || message.includes('fertig') ||
+            message.includes('Commit:') || message.includes('commit:') ||
+            message.startsWith('```') || message.includes('## ')) {
+            typ = 'RUECKMELDUNG';
+        }
+
+        // UI sofort aktualisieren
+        addChatMessage(typ.toLowerCase(), message);
         userInput.value = '';
         userInput.style.height = 'auto';
 
-        // Platzhalter-Antwort (wird in späteren Aufträgen erweitert)
-        setTimeout(function() {
-            addChatMessage('system', 'Diese Funktion wird in einem späteren Auftrag implementiert. Nutze die Buttons unten für spezifische Aktionen.');
-        }, 500);
+        // In Datenbank speichern
+        saveChatMessage(typ, message);
+    }
+
+    function saveChatMessage(typ, inhalt) {
+        if (!projektId) return;
+
+        fetch(`/projekt/${projektId}/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `typ=${encodeURIComponent(typ)}&inhalt=${encodeURIComponent(inhalt)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Fehler beim Speichern:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Fehler beim Speichern:', error);
+        });
     }
 
     function addChatMessage(type, content) {
@@ -119,23 +169,61 @@ document.addEventListener('DOMContentLoaded', function() {
             minute: '2-digit'
         });
 
+        // Icons und Sender je nach Typ
+        let icon = '&#128172;';
+        let sender = type.toUpperCase();
+
+        switch(type.toLowerCase()) {
+            case 'user':
+                icon = '&#128100;';
+                sender = 'Du';
+                break;
+            case 'auftrag':
+                icon = '&#128203;';
+                sender = 'Auftrag';
+                break;
+            case 'fehler':
+                icon = '&#9888;';
+                sender = 'Fehler-Analyse';
+                break;
+            case 'analyse':
+                icon = '&#128202;';
+                sender = 'Analyse';
+                break;
+            case 'system':
+                icon = '&#9881;';
+                sender = 'System';
+                break;
+            case 'rueckmeldung':
+                icon = '&#128172;';
+                sender = 'Rückmeldung';
+                break;
+        }
+
         messageDiv.innerHTML = `
             <div class="message-header">
-                <span class="message-sender">${type === 'user' ? 'Du' : 'NEXUS'}</span>
+                <div class="message-info">
+                    <span class="message-icon">${icon}</span>
+                    <span class="message-sender">${sender}</span>
+                </div>
                 <span class="message-time">${timestamp}</span>
             </div>
             <div class="message-content">${escapeHtml(content)}</div>
         `;
 
         chatContainer.appendChild(messageDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        scrollToBottom();
     }
 
     function clearChatEmpty() {
         const chatLeer = chatContainer.querySelector('.chat-leer');
-        if (chatLeer) {
-            chatLeer.remove();
-        }
+        const chatLoading = chatContainer.querySelector('.chat-loading');
+        if (chatLeer) chatLeer.remove();
+        if (chatLoading) chatLoading.remove();
+    }
+
+    function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
     function escapeHtml(text) {
