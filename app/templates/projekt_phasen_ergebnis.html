@@ -107,15 +107,26 @@
                     <a href="/projekt/{{ projekt.id }}/phasen" class="btn btn-secondary">
                         ↩ Nochmal generieren
                     </a>
-                    <button class="btn btn-primary" onclick="alert('Auftrag 3.2 folgt: Sonnet erstellt Aufträge!')">
-                        ✅ Weiter zu Aufträgen
-                    </button>
+                    <form action="/projekt/{{ projekt.id }}/auftraege/generieren" method="POST" style="display: inline;" id="auftraegeForm">
+                        <button type="submit" class="btn btn-primary" id="generateAuftraegeBtn">
+                            ✅ Weiter zu Aufträgen
+                        </button>
+                    </form>
                 </div>
 
                 <!-- Info -->
                 <div class="next-step-info">
                     <strong>🎯 Nächster Schritt:</strong>
-                    In Auftrag 3.2 wird Sonnet 4.5 für jede Phase konkrete Aufträge mit Regelwerk erstellen.
+                    Sonnet 4.5 wird für jede Phase konkrete Aufträge mit Regelwerk erstellen.
+                </div>
+
+                <!-- Loading Overlay (hidden by default) -->
+                <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Sonnet 4.5 erstellt Aufträge...</p>
+                        <p class="loading-subtext">Dies kann 60-120 Sekunden dauern</p>
+                    </div>
                 </div>
 
             </div>
@@ -126,5 +137,13 @@
             <p>NEXUS OVERLORD v2.0 - Multi-Agent Intelligence</p>
         </footer>
     </div>
+
+    <script>
+        // Loading-Anzeige beim Submit
+        document.getElementById('auftraegeForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('generateAuftraegeBtn').disabled = true;
+        });
+    </script>
 </body>
 </html>

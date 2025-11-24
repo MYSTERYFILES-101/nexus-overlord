@@ -338,6 +338,73 @@ def projekt_phasen():
         return redirect(url_for('index'))
 
 
+@app.route('/projekt/<int:projekt_id>/auftraege/generieren', methods=['POST'])
+def auftraege_generieren(projekt_id):
+    """Generiert Aufträge mit Sonnet 4.5 (Auftrag 3.2)"""
+    from app.services.database import get_projekt
+    from app.services.auftraege_generator import generate_auftraege
+
+    projekt = get_projekt(projekt_id)
+    phasen_data = session.get('phasen_data')
+
+    if not projekt:
+        flash('❌ Projekt nicht gefunden', 'error')
+        return redirect(url_for('index'))
+
+    if not phasen_data:
+        flash('❌ Erst Phasen generieren!', 'error')
+        return redirect(url_for('projekt_phasen_view', projekt_id=projekt_id))
+
+    try:
+        # Sonnet aufrufen (kann lange dauern)
+        auftraege_data = generate_auftraege(phasen_data, projekt['enterprise_plan'])
+
+        # In Session speichern für Auftrag 3.3
+        session['auftraege_data'] = auftraege_data
+        session['projekt_id'] = projekt_id
+
+        flash('✅ Aufträge erfolgreich generiert!', 'success')
+        return redirect(url_for('auftraege_anzeigen', projekt_id=projekt_id))
+
+    except Exception as e:
+        flash(f'❌ Fehler bei Auftrags-Generierung: {str(e)}', 'error')
+        return redirect(url_for('projekt_phasen_ergebnis', projekt_id=projekt_id))
+
+
+@app.route('/projekt/<int:projekt_id>/auftraege')
+def auftraege_anzeigen(projekt_id):
+    """Zeigt generierte Aufträge an (Auftrag 3.2)"""
+    from app.services.database import get_projekt
+
+    projekt = get_projekt(projekt_id)
+    auftraege_data = session.get('auftraege_data')
+    phasen_data = session.get('phasen_data')
+
+    if not auftraege_data:
+        flash('❌ Keine Aufträge gefunden. Bitte erst generieren.', 'error')
+        return redirect(url_for('projekt_phasen_ergebnis', projekt_id=projekt_id))
+
+    # Gruppiere Aufträge nach Phase
+    auftraege_by_phase = {}
+    for auftrag in auftraege_data['auftraege']:
+        phase_nr = auftrag['phase_nummer']
+        if phase_nr not in auftraege_by_phase:
+            auftraege_by_phase[phase_nr] = []
+        auftraege_by_phase[phase_nr].append(auftrag)
+
+    # Phasen-Namen hinzufügen (aus phasen_data)
+    phasen_namen = {}
+    if phasen_data and 'phasen' in phasen_data:
+        for phase in phasen_data['phasen']:
+            phasen_namen[phase['nummer']] = phase['name']
+
+    return render_template('projekt_auftraege.html',
+                          projekt=projekt,
+                          auftraege_data=auftraege_data,
+                          auftraege_by_phase=auftraege_by_phase,
+                          phasen_namen=phasen_namen)
+
+
 @app.route('/projekt/liste')
 def projekt_liste():
     """Kachel 3: Projekt öffnen und steuern (Phase 4)"""

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aufträge - NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 AUFTRÄGE & REGELWERK</h1>
+            <p>{{ projekt.name }}</p>
+        </header>
+
+        <main>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="auftraege-container">
+
+                <!-- Übersicht Box -->
+                <div class="auftraege-overview-box">
+                    <div class="overview-stat">
+                        <span class="stat-number">{{ auftraege_data.gesamt_auftraege }}</span>
+                        <span class="stat-label">Aufträge</span>
+                    </div>
+                    <div class="overview-stat">
+                        <span class="stat-number">{{ auftraege_by_phase|length }}</span>
+                        <span class="stat-label">Phasen</span>
+                    </div>
+                    <div class="overview-stat">
+                        <span class="stat-number">{{ auftraege_data.geschaetzte_dauer }}</span>
+                        <span class="stat-label">Geschätzte Dauer</span>
+                    </div>
+                </div>
+
+                <!-- Hinweise (falls vorhanden) -->
+                {% if auftraege_data.hinweise %}
+                <div class="auftraege-hinweise-box">
+                    <div class="hinweise-icon">💡</div>
+                    <div class="hinweise-content">
+                        <strong>Umsetzungs-Hinweise:</strong>
+                        <p>{{ auftraege_data.hinweise }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Phasen & Aufträge -->
+                <div class="phasen-auftraege-liste">
+                    <h2>📋 Aufträge nach Phasen</h2>
+
+                    {% for phase_nr in auftraege_by_phase|sort %}
+                    <div class="phase-section">
+                        <!-- Phase Header (Collapsible) -->
+                        <div class="phase-section-header" onclick="togglePhase({{ phase_nr }})">
+                            <div class="phase-section-title">
+                                <span class="phase-badge">Phase {{ phase_nr }}</span>
+                                <span class="phase-name">{{ phasen_namen.get(phase_nr, 'Unbenannt') }}</span>
+                                <span class="phase-count">{{ auftraege_by_phase[phase_nr]|length }} Aufträge</span>
+                            </div>
+                            <span class="phase-toggle" id="toggle-{{ phase_nr }}">▼</span>
+                        </div>
+
+                        <!-- Aufträge-Liste (Collapsible) -->
+                        <div class="phase-section-content" id="phase-{{ phase_nr }}" style="display: block;">
+                            {% for auftrag in auftraege_by_phase[phase_nr] %}
+                            <div class="auftrag-card">
+                                <!-- Auftrag Header -->
+                                <div class="auftrag-header" onclick="toggleAuftrag('{{ auftrag.auftrag_nummer }}')">
+                                    <div class="auftrag-title">
+                                        <span class="auftrag-nummer">{{ auftrag.auftrag_nummer }}</span>
+                                        <span class="auftrag-name">{{ auftrag.name }}</span>
+                                    </div>
+                                    <span class="auftrag-toggle" id="toggle-auftrag-{{ auftrag.auftrag_nummer }}">▼</span>
+                                </div>
+
+                                <!-- Auftrag Content (Collapsible) -->
+                                <div class="auftrag-content" id="auftrag-{{ auftrag.auftrag_nummer }}" style="display: none;">
+                                    <!-- Beschreibung -->
+                                    <div class="auftrag-beschreibung">
+                                        {{ auftrag.beschreibung }}
+                                    </div>
+
+                                    <!-- Schritte -->
+                                    <div class="auftrag-section">
+                                        <h4>📝 Schritte</h4>
+                                        <ol class="auftrag-steps">
+                                            {% for schritt in auftrag.schritte %}
+                                            <li>{{ schritt }}</li>
+                                            {% endfor %}
+                                        </ol>
+                                    </div>
+
+                                    <!-- Dateien -->
+                                    <div class="auftrag-section">
+                                        <h4>📁 Dateien</h4>
+                                        <div class="auftrag-dateien">
+                                            {% for datei in auftrag.dateien %}
+                                            <div class="datei-item">
+                                                <span class="datei-aktion datei-aktion-{{ datei.aktion }}">
+                                                    {% if datei.aktion == 'neu' %}➕{% elif datei.aktion == 'ändern' %}✏️{% else %}📝{% endif %}
+                                                </span>
+                                                <code class="datei-pfad">{{ datei.pfad }}</code>
+                                                <span class="datei-aktion-label">{{ datei.aktion }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Technische Details -->
+                                    {% if auftrag.technische_details %}
+                                    <div class="auftrag-section">
+                                        <h4>⚙️ Technische Details</h4>
+                                        <ul class="auftrag-tech">
+                                            {% for detail in auftrag.technische_details %}
+                                            <li>{{ detail }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Erfolgs-Kriterien -->
+                                    <div class="auftrag-section">
+                                        <h4>✅ Erfolgs-Kriterien</h4>
+                                        <ul class="auftrag-kriterien">
+                                            {% for kriterium in auftrag.erfolgs_kriterien %}
+                                            <li>{{ kriterium }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+
+                                    <!-- Regelwerk -->
+                                    <div class="auftrag-regelwerk">
+                                        <h4>⚠️ Regelwerk für Claude Code</h4>
+                                        <div class="regelwerk-item">
+                                            <strong>Commit Message:</strong>
+                                            <code>{{ auftrag.regelwerk.commit_message }}</code>
+                                        </div>
+                                        <div class="regelwerk-item">
+                                            <strong>Übergabe-Pfad:</strong>
+                                            <code>{{ auftrag.regelwerk.uebergabe_pfad }}</code>
+                                        </div>
+                                        <div class="regelwerk-item">
+                                            <strong>Pflichten:</strong>
+                                            <ul class="regelwerk-pflichten">
+                                                {% for pflicht in auftrag.regelwerk.pflichten %}
+                                                <li>{{ pflicht }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <!-- Actions -->
+                <div class="auftraege-actions">
+                    <a href="/projekt/{{ projekt.id }}/phasen/ergebnis" class="btn btn-secondary">
+                        ← Zurück zu Phasen
+                    </a>
+                    <button class="btn btn-primary" onclick="alert('Auftrag 3.3 folgt: Gemini Qualitätsprüfung!')">
+                        ✅ Weiter zur Qualitätsprüfung
+                    </button>
+                </div>
+
+                <!-- Info -->
+                <div class="next-step-info">
+                    <strong>🎯 Nächster Schritt:</strong>
+                    In Auftrag 3.3 wird Gemini 3 Pro die Aufträge prüfen und Verbesserungsvorschläge machen.
+                </div>
+
+            </div>
+
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Multi-Agent Intelligence</p>
+        </footer>
+    </div>
+
+    <script>
+        // Toggle Phase Section
+        function togglePhase(phaseNr) {
+            const content = document.getElementById('phase-' + phaseNr);
+            const toggle = document.getElementById('toggle-' + phaseNr);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+
+        // Toggle Auftrag Details
+        function toggleAuftrag(auftragNr) {
+            const content = document.getElementById('auftrag-' + auftragNr);
+            const toggle = document.getElementById('toggle-auftrag-' + auftragNr);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+
+        // Alle Aufträge einer Phase togglen
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Aufträge-Seite geladen');
+        });
+    </script>
+</body>
+</html>

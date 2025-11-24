@@ -1390,3 +1390,357 @@ footer {
         flex-direction: column;
     }
 }
+
+/* ========================================
+   AUFTRÄGE STYLING (Auftrag 3.2)
+   ======================================== */
+
+.auftraege-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.auftraege-overview-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-around;
+    gap: 30px;
+}
+
+.auftraege-hinweise-box {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.phasen-auftraege-liste {
+    margin-bottom: 30px;
+}
+
+.phasen-auftraege-liste > h2 {
+    color: #2c3e50;
+    margin-bottom: 25px;
+    font-size: 1.8rem;
+}
+
+/* Phase Section */
+.phase-section {
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.phase-section-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 25px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.phase-section-header:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #6a3f8c 100%);
+}
+
+.phase-section-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
+
+.phase-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.phase-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    flex: 1;
+}
+
+.phase-count {
+    background: rgba(255,255,255,0.2);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.phase-toggle {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+}
+
+.phase-section-content {
+    padding: 20px;
+}
+
+/* Auftrag Card */
+.auftrag-card {
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.auftrag-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+.auftrag-header {
+    background: white;
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.3s ease;
+}
+
+.auftrag-header:hover {
+    background: #f1f3f5;
+}
+
+.auftrag-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
+
+.auftrag-nummer {
+    background: #667eea;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+.auftrag-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.auftrag-toggle {
+    font-size: 1.1rem;
+    color: #667eea;
+    transition: transform 0.3s ease;
+}
+
+.auftrag-content {
+    padding: 20px;
+    background: white;
+}
+
+.auftrag-beschreibung {
+    color: #495057;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-left: 4px solid #667eea;
+    border-radius: 4px;
+}
+
+.auftrag-section {
+    margin-bottom: 25px;
+}
+
+.auftrag-section h4 {
+    color: #2c3e50;
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auftrag-steps {
+    padding-left: 25px;
+    margin: 0;
+}
+
+.auftrag-steps li {
+    margin-bottom: 10px;
+    line-height: 1.6;
+    color: #495057;
+}
+
+.auftrag-dateien {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.datei-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #667eea;
+}
+
+.datei-aktion {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.datei-aktion-neu {
+    color: #28a745;
+}
+
+.datei-aktion-ändern {
+    color: #ffc107;
+}
+
+.datei-pfad {
+    flex: 1;
+    background: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #e83e8c;
+}
+
+.datei-aktion-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.auftrag-tech {
+    padding-left: 25px;
+    margin: 0;
+}
+
+.auftrag-tech li {
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+.auftrag-kriterien {
+    padding-left: 25px;
+    margin: 0;
+}
+
+.auftrag-kriterien li {
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+/* Regelwerk */
+.auftrag-regelwerk {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border: 2px solid #667eea;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 25px;
+}
+
+.auftrag-regelwerk h4 {
+    color: #667eea;
+    margin-bottom: 15px;
+    font-size: 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.regelwerk-item {
+    margin-bottom: 15px;
+}
+
+.regelwerk-item strong {
+    display: block;
+    color: #2c3e50;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
+
+.regelwerk-item code {
+    display: block;
+    background: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border-left: 3px solid #667eea;
+    font-family: 'Courier New', monospace;
+    color: #e83e8c;
+    font-size: 0.9rem;
+}
+
+.regelwerk-pflichten {
+    padding-left: 25px;
+    margin: 0;
+}
+
+.regelwerk-pflichten li {
+    margin-bottom: 8px;
+    color: #495057;
+}
+
+/* Actions */
+.auftraege-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 40px;
+    margin-bottom: 30px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .auftraege-overview-box {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .phase-section-title {
+        flex-wrap: wrap;
+    }
+    
+    .phase-name {
+        flex-basis: 100%;
+    }
+    
+    .auftrag-title {
+        flex-wrap: wrap;
+    }
+    
+    .datei-item {
+        flex-wrap: wrap;
+    }
+    
+    .auftraege-actions {
+        flex-direction: column;
+    }
+}
