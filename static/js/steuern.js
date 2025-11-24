@@ -329,15 +329,58 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
-    // ACTION BUTTONS (Platzhalter für 4.4+)
+    // ANALYSIEREN BUTTON (Auftrag 4.4)
     // ========================================
 
-    // Analysieren Button
     if (btnAnalysieren) {
         btnAnalysieren.addEventListener('click', function() {
-            showActionInfo('Analysieren', 'KI-Analyse starten - Diese Funktion wird in Auftrag 4.4 implementiert.');
+            loadProjektAnalyse();
         });
     }
+
+    function loadProjektAnalyse() {
+        if (!projektId) {
+            addChatMessage('system', 'Fehler: Projekt-ID nicht gefunden.');
+            return;
+        }
+
+        // Button deaktivieren während des Ladens
+        btnAnalysieren.disabled = true;
+        btnAnalysieren.innerHTML = '<span class="btn-icon">&#8987;</span><span class="btn-text">Analysiere...</span>';
+
+        // Leere Chat-Anzeige entfernen
+        clearChatEmpty();
+
+        // API-Aufruf
+        fetch(`/projekt/${projektId}/analysieren`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // HTML in Chat-Container einfügen
+            chatContainer.insertAdjacentHTML('beforeend', html);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Button wieder aktivieren
+            btnAnalysieren.disabled = false;
+            btnAnalysieren.innerHTML = '<span class="btn-icon">&#128202;</span><span class="btn-text">Analysieren</span>';
+        })
+        .catch(error => {
+            console.error('Fehler bei Projekt-Analyse:', error);
+            addChatMessage('system', 'Fehler bei der Analyse. Bitte versuche es erneut.');
+
+            // Button wieder aktivieren
+            btnAnalysieren.disabled = false;
+            btnAnalysieren.innerHTML = '<span class="btn-icon">&#128202;</span><span class="btn-text">Analysieren</span>';
+        });
+    }
+
+    // ========================================
+    // ACTION BUTTONS (Platzhalter für 4.5+)
+    // ========================================
 
     // Übergaben Button
     if (btnUebergaben) {
@@ -398,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 250);
     });
 
-    console.log('NEXUS OVERLORD - Steuern-Modul geladen (v4.2)');
+    console.log('NEXUS OVERLORD - Steuern-Modul geladen (v4.4)');
 });
 
 // ========================================
@@ -579,4 +622,33 @@ function sendFehlerFeedback(fehlerId, erfolg) {
     .catch(error => {
         console.error('Fehler beim Feedback:', error);
     });
+}
+
+/**
+ * Kopiert Analyse-Zusammenfassung in die Zwischenablage (Auftrag 4.4)
+ */
+function copyAnalyse() {
+    const textElement = document.querySelector('.zusammenfassung-text');
+    const feedbackElement = document.getElementById('copyAnalyseFeedback');
+
+    if (!textElement) {
+        console.error('Zusammenfassung nicht gefunden');
+        return;
+    }
+
+    const text = textElement.textContent;
+
+    // Moderne Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showCopyFeedback(feedbackElement);
+            })
+            .catch(err => {
+                console.error('Clipboard-Fehler:', err);
+                fallbackCopy(text, feedbackElement);
+            });
+    } else {
+        fallbackCopy(text, feedbackElement);
+    }
 }

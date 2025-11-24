@@ -746,6 +746,37 @@ def fehler_feedback(projekt_id, fehler_id):
     return jsonify({'success': True, 'message': 'Feedback gespeichert'})
 
 
+@app.route('/projekt/<int:projekt_id>/analysieren', methods=['POST'])
+def projekt_analysieren(projekt_id):
+    """
+    Analysiert den Projekt-Status und zeigt Zusammenfassung (Auftrag 4.4)
+    Gemini 3 Pro analysiert, Opus 4.5 erstellt lesbare Zusammenfassung
+    """
+    from app.services.database import get_projekt
+    from app.services.projekt_analyzer import analyze_projekt
+
+    # Projekt laden
+    projekt = get_projekt(projekt_id)
+    if not projekt:
+        return render_template('partials/chat_message.html',
+                             message_type='error',
+                             content='Projekt nicht gefunden.')
+
+    # Projekt analysieren
+    result = analyze_projekt(projekt_id)
+
+    if result['status'] == 'error':
+        return render_template('partials/chat_message.html',
+                             message_type='error',
+                             content=result.get('message', 'Analyse fehlgeschlagen'))
+
+    # Als Analyse-Nachricht zurückgeben
+    return render_template('partials/analyse_response.html',
+                         projekt_name=projekt.get('name', 'Unbekannt'),
+                         zusammenfassung=result['zusammenfassung'],
+                         daten=result['daten'])
+
+
 if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5000))

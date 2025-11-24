@@ -488,3 +488,115 @@ def get_fehler_stats() -> dict:
         'avg_erfolgsrate': round(avg_rate, 1),
         'kategorien': kategorien
     }
+
+
+# ========================================
+# ANALYSE-FUNKTIONEN (Auftrag 4.4)
+# ========================================
+
+def get_projekt_analyse(projekt_id: int) -> dict:
+    """
+    Sammelt alle Daten für Projekt-Analyse
+
+    Args:
+        projekt_id: Project ID
+
+    Returns:
+        dict: Komplette Projekt-Daten für Analyse
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Projekt-Info
+    cursor.execute("SELECT * FROM projekte WHERE id = ?", (projekt_id,))
+    projekt_row = cursor.fetchone()
+    if not projekt_row:
+        conn.close()
+        return None
+
+    projekt = dict(projekt_row)
+
+    # Phasen mit Statistik
+    cursor.execute("""
+        SELECT p.*,
+               COUNT(a.id) as total_auftraege,
+               SUM(CASE WHEN a.status = 'fertig' THEN 1 ELSE 0 END) as erledigte,
+               SUM(CASE WHEN a.status = 'in_arbeit' THEN 1 ELSE 0 END) as in_arbeit,
+               SUM(CASE WHEN a.status = 'offen' THEN 1 ELSE 0 END) as offene
+        FROM phasen p
+        LEFT JOIN auftraege a ON p.id = a.phase_id
+        WHERE p.projekt_id = ?
+        GROUP BY p.id
+        ORDER BY p.nummer
+    """, (projekt_id,))
+    phasen = [dict(row) for row in cursor.fetchall()]
+
+    # Gesamt-Statistik berechnen
+    total_auftraege = sum(p.get('total_auftraege', 0) or 0 for p in phasen)
+    erledigte_auftraege = sum(p.get('erledigte', 0) or 0 for p in phasen)
+    in_arbeit_auftraege = sum(p.get('in_arbeit', 0) or 0 for p in phasen)
+
+    # Fortschritt berechnen
+    fortschritt = 0
+    if total_auftraege > 0:
+        fortschritt = round((erledigte_auftraege / total_auftraege) * 100)
+
+    # Aktueller Auftrag (in_arbeit oder nächster offener)
+    cursor.execute("""
+        SELECT a.*, p.name as phase_name, p.nummer as phase_nummer
+        FROM auftraege a
+        JOIN phasen p ON a.phase_id = p.id
+        WHERE p.projekt_id = ?
+        AND a.status IN ('in_arbeit', 'offen')
+        ORDER BY
+            CASE WHEN a.status = 'in_arbeit' THEN 0 ELSE 1 END,
+            p.nummer, a.nummer
+        LIMIT 1
+    """, (projekt_id,))
+    aktueller_auftrag_row = cursor.fetchone()
+    aktueller_auftrag = dict(aktueller_auftrag_row) if aktueller_auftrag_row else None
+
+    # Aktuelle Phase ermitteln
+    aktuelle_phase = None
+    for phase in phasen:
+        if phase.get('offene', 0) > 0 or phase.get('in_arbeit', 0) > 0:
+            aktuelle_phase = phase
+            break
+    if not aktuelle_phase and phasen:
+        aktuelle_phase = phasen[-1]
+
+    # Letzte erledigte Aufträge (für "Zuletzt erledigt")
+    cursor.execute("""
+        SELECT a.name, a.nummer, p.name as phase_name, p.nummer as phase_nummer
+        FROM auftraege a
+        JOIN phasen p ON a.phase_id = p.id
+        WHERE p.projekt_id = ?
+        AND a.status = 'fertig'
+        ORDER BY a.updated_at DESC
+        LIMIT 3
+    """, (projekt_id,))
+    letzte_erledigte = [dict(row) for row in cursor.fetchall()]
+
+    # Offene Fehler (letzte 7 Tage)
+    cursor.execute("""
+        SELECT COUNT(*) as anzahl FROM fehler
+        WHERE created_at > datetime('now', '-7 days')
+    """)
+    offene_fehler = cursor.fetchone()['anzahl']
+
+    conn.close()
+
+    return {
+        'projekt': projekt,
+        'phasen': phasen,
+        'total_phasen': len(phasen),
+        'total_auftraege': total_auftraege,
+        'erledigte_auftraege': erledigte_auftraege,
+        'in_arbeit_auftraege': in_arbeit_auftraege,
+        'offene_auftraege': total_auftraege - erledigte_auftraege - in_arbeit_auftraege,
+        'fortschritt': fortschritt,
+        'aktuelle_phase': aktuelle_phase,
+        'aktueller_auftrag': aktueller_auftrag,
+        'letzte_erledigte': letzte_erledigte,
+        'offene_fehler': offene_fehler
+    }

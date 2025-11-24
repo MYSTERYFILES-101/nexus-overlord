@@ -1,0 +1,88 @@
+{#
+NEXUS OVERLORD v2.0 - Analyse Response Template (Auftrag 4.4)
+Zeigt Projekt-Status und Zusammenfassung im Chat an
+#}
+
+<div class="chat-message chat-analyse">
+    <!-- Header -->
+    <div class="message-header">
+        <div class="message-info">
+            <span class="message-icon">&#128202;</span>
+            <span class="message-title">Projekt-Analyse: {{ projekt_name }}</span>
+        </div>
+    </div>
+
+    <!-- Status-Karte -->
+    <div class="analyse-karte">
+        <!-- Fortschritts-Balken -->
+        <div class="analyse-progress">
+            {% set fortschritt = daten.get('fortschritt', 0) %}
+            {% set filled = (fortschritt / 10)|int %}
+            <div class="progress-header">
+                <span class="progress-label">Gesamtfortschritt</span>
+                <span class="progress-value">{{ fortschritt }}%</span>
+            </div>
+            <div class="progress-bar-analyse">
+                <div class="progress-fill-analyse" style="width: {{ fortschritt }}%"></div>
+            </div>
+        </div>
+
+        <!-- Statistik-Kacheln -->
+        <div class="analyse-stats">
+            <div class="stat-box">
+                <span class="stat-number">{{ daten.get('erledigte_auftraege', 0) }}</span>
+                <span class="stat-label">Erledigt</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-number">{{ daten.get('in_arbeit_auftraege', 0) }}</span>
+                <span class="stat-label">In Arbeit</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-number">{{ daten.get('total_auftraege', 0) - daten.get('erledigte_auftraege', 0) - daten.get('in_arbeit_auftraege', 0) }}</span>
+                <span class="stat-label">Offen</span>
+            </div>
+            <div class="stat-box {% if daten.get('offene_fehler', 0) > 0 %}stat-warning{% endif %}">
+                <span class="stat-number">{{ daten.get('offene_fehler', 0) }}</span>
+                <span class="stat-label">Fehler</span>
+            </div>
+        </div>
+
+        <!-- Phasen-Übersicht -->
+        <div class="analyse-phasen">
+            <h4>Phasen-Status</h4>
+            {% for phase in daten.get('phasen', []) %}
+            <div class="phase-row">
+                <span class="phase-nummer">{{ phase.get('nummer', '?') }}</span>
+                <span class="phase-name">{{ phase.get('name', 'Unbekannt') }}</span>
+                <div class="phase-progress-mini">
+                    {% set phase_total = phase.get('total_auftraege', 0) %}
+                    {% set phase_done = phase.get('erledigte', 0) %}
+                    {% set phase_percent = ((phase_done / phase_total) * 100) if phase_total > 0 else 0 %}
+                    <div class="mini-bar">
+                        <div class="mini-fill {% if phase_percent == 100 %}complete{% elif phase_percent > 0 %}in-progress{% endif %}" style="width: {{ phase_percent }}%"></div>
+                    </div>
+                    <span class="phase-count">{{ phase_done }}/{{ phase_total }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Zusammenfassung -->
+    <div class="analyse-zusammenfassung">
+        <pre class="zusammenfassung-text">{{ zusammenfassung }}</pre>
+    </div>
+
+    <!-- Actions -->
+    <div class="message-actions">
+        <button class="action-btn-small btn-copy" onclick="copyAnalyse()" title="Zusammenfassung kopieren">
+            <span class="btn-icon">&#128203;</span>
+            <span class="btn-text">Kopieren</span>
+        </button>
+    </div>
+
+    <!-- Copy Feedback -->
+    <div class="copy-feedback" id="copyAnalyseFeedback" style="display: none;">
+        &#10003; In Zwischenablage kopiert!
+    </div>
+</div>

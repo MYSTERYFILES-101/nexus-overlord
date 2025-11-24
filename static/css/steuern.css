@@ -1425,3 +1425,294 @@
         justify-content: center;
     }
 }
+
+
+/* ========================================
+   ANALYSE-KARTE (Auftrag 4.4)
+   ======================================== */
+
+.chat-analyse {
+    border-left: 4px solid #667eea;
+    background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+}
+
+.chat-analyse .message-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: -15px -15px 15px -15px;
+    padding: 15px;
+    border-radius: 8px 8px 0 0;
+}
+
+.chat-analyse .message-info {
+    color: #fff;
+}
+
+.chat-analyse .message-icon {
+    font-size: 1.4rem;
+}
+
+.chat-analyse .message-title {
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Analyse Status-Karte */
+.analyse-karte {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Fortschritts-Balken */
+.analyse-progress {
+    margin-bottom: 20px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.progress-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.progress-value {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 1.1rem;
+}
+
+.progress-bar-analyse {
+    height: 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-fill-analyse {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 6px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.progress-fill-analyse::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Statistik-Kacheln */
+.analyse-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.stat-box {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px 10px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-box.stat-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.2;
+}
+
+.stat-warning .stat-number {
+    color: #d63384;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Phasen-Übersicht */
+.analyse-phasen {
+    margin-top: 15px;
+}
+
+.analyse-phasen h4 {
+    font-size: 0.95rem;
+    color: #333;
+    margin: 0 0 12px 0;
+    font-weight: 600;
+}
+
+.phase-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
+}
+
+.phase-row:last-child {
+    border-bottom: none;
+}
+
+.phase-nummer {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #667eea;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.phase-name {
+    flex: 1;
+    font-size: 0.9rem;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.phase-progress-mini {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.mini-bar {
+    width: 60px;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.mini-fill {
+    height: 100%;
+    background: #ced4da;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.mini-fill.in-progress {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.mini-fill.complete {
+    background: #28a745;
+}
+
+.phase-count {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+    min-width: 40px;
+    text-align: right;
+}
+
+/* Zusammenfassung */
+.analyse-zusammenfassung {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.zusammenfassung-text {
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+    margin: 0;
+    overflow-x: auto;
+}
+
+/* Responsive Analyse-Karte */
+@media (max-width: 768px) {
+    .analyse-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-number {
+        font-size: 1.4rem;
+    }
+
+    .phase-name {
+        font-size: 0.85rem;
+    }
+
+    .mini-bar {
+        width: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .analyse-karte {
+        padding: 15px;
+    }
+
+    .stat-box {
+        padding: 12px 8px;
+    }
+
+    .stat-number {
+        font-size: 1.2rem;
+    }
+
+    .phase-row {
+        flex-wrap: wrap;
+    }
+
+    .phase-progress-mini {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .mini-bar {
+        flex: 1;
+    }
+}
