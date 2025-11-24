@@ -10,33 +10,103 @@
     <div class="container">
         <header>
             <h1>🆕 NEUES PROJEKT</h1>
-            <p>Multi-Agent Workflow</p>
+            <p>Multi-Agent Workflow für Enterprise-Planung</p>
         </header>
 
-        <main class="platzhalter">
-            <div class="info-box">
-                <div class="info-icon">🚧</div>
-                <h2>Wird in Phase 2 implementiert</h2>
-                <p>Diese Funktion wird in <strong>Phase 2: Kachel 1 - Projekt erstellen</strong> entwickelt.</p>
+        <main>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">
+                                {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %}
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
 
-                <div class="feature-preview">
-                    <h3>Was wird hier passieren:</h3>
-                    <ul>
-                        <li>✨ Projektname eingeben</li>
-                        <li>✨ Projektplan beschreiben</li>
-                        <li>✨ 6-Phasen Multi-Agent Workflow starten</li>
-                        <li>✨ Live-Tracker für Fortschritt</li>
-                        <li>✨ Enterprise-Plan erhalten</li>
-                        <li>✨ Bewertung mit Begründung</li>
-                    </ul>
+            <!-- Formular -->
+            <div class="form-container">
+                <div class="form-box">
+                    <div class="form-header">
+                        <h2>Projekt erstellen</h2>
+                        <p>Beschreibe dein Projekt und lass den Multi-Agent Workflow einen Enterprise-Plan erstellen.</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('projekt_neu') }}" class="projekt-form">
+                        <!-- Projektname -->
+                        <div class="form-group">
+                            <label for="projektname">
+                                <span class="label-icon">📝</span>
+                                Projektname
+                                <span class="label-required">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="projektname"
+                                name="projektname"
+                                class="form-input"
+                                placeholder="z.B. Kaspa-Nexus, E-Commerce-Platform, AI-Dashboard..."
+                                value="{{ projektname if projektname else '' }}"
+                                required
+                                maxlength="100"
+                            >
+                            <small class="form-hint">Gib deinem Projekt einen aussagekräftigen Namen</small>
+                        </div>
+
+                        <!-- Projektplan -->
+                        <div class="form-group">
+                            <label for="projektplan">
+                                <span class="label-icon">📋</span>
+                                Projektplan
+                                <span class="label-required">*</span>
+                            </label>
+                            <textarea
+                                id="projektplan"
+                                name="projektplan"
+                                class="form-textarea"
+                                placeholder="Beschreibe dein Projekt in eigenen Worten:&#10;&#10;- Was soll gebaut werden?&#10;- Welche Features sind wichtig?&#10;- Gibt es spezielle Anforderungen?&#10;- Welche Technologien möchtest du nutzen?&#10;&#10;Je detaillierter, desto besser wird der Enterprise-Plan!"
+                                required
+                                rows="12"
+                            >{{ projektplan if projektplan else '' }}</textarea>
+                            <small class="form-hint">Mindestens 50 Zeichen - je mehr Details, desto besser der Plan</small>
+                        </div>
+
+                        <!-- Info-Box -->
+                        <div class="form-info">
+                            <div class="info-icon">🤖</div>
+                            <div class="info-text">
+                                <strong>Was passiert als Nächstes?</strong>
+                                <ul>
+                                    <li>Sonnet 4.5 analysiert deinen Plan</li>
+                                    <li>Gemini 3 Pro gibt Feedback</li>
+                                    <li>Sonnet erstellt einen Enterprise-Plan</li>
+                                    <li>Gemini prüft die Qualität</li>
+                                    <li>Sonnet verbessert den Plan</li>
+                                    <li>Gemini bewertet das Ergebnis</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="form-actions">
+                            <a href="/" class="btn btn-secondary">
+                                ← Abbrechen
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                🚀 Enterprise-Plan erstellen
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <a href="/" class="btn-back">← Zurück zur Startseite</a>
             </div>
         </main>
 
         <footer>
-            <p>NEXUS OVERLORD v2.0 - Phase 2 kommt bald!</p>
+            <p>NEXUS OVERLORD v2.0 - Powered by Sonnet 4.5 & Gemini 3 Pro</p>
         </footer>
     </div>
 </body>

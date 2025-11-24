@@ -3,7 +3,7 @@ NEXUS OVERLORD v2.0 - Main Entry Point
 Flask Web Application
 """
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import os
 from dotenv import load_dotenv
 
@@ -37,9 +37,37 @@ def health():
 # PROJEKT ROUTES (Kacheln)
 # ========================================
 
-@app.route('/projekt/neu')
+@app.route('/projekt/neu', methods=['GET', 'POST'])
 def projekt_neu():
     """Kachel 1: Neues Projekt erstellen (Phase 2)"""
+    if request.method == 'POST':
+        # Formular-Daten holen
+        projektname = request.form.get('projektname', '').strip()
+        projektplan = request.form.get('projektplan', '').strip()
+
+        # Validierung
+        if not projektname:
+            flash('Bitte gib einen Projektnamen ein.', 'error')
+            return render_template('projekt_neu.html',
+                                 projektname=projektname,
+                                 projektplan=projektplan)
+
+        if not projektplan:
+            flash('Bitte beschreibe deinen Projektplan.', 'error')
+            return render_template('projekt_neu.html',
+                                 projektname=projektname,
+                                 projektplan=projektplan)
+
+        # Daten in Session speichern für Multi-Agent Workflow
+        session['projektname'] = projektname
+        session['projektplan'] = projektplan
+
+        # Weiterleitung zum Live-Tracker (wird in Auftrag 2.2 implementiert)
+        flash('Projekt-Daten gespeichert! Multi-Agent Workflow startet...', 'success')
+        # TODO: Redirect zu /projekt/tracker wenn implementiert
+        return redirect(url_for('projekt_neu'))
+
+    # GET: Formular anzeigen
     return render_template('projekt_neu.html')
 
 
