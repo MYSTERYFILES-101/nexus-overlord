@@ -195,15 +195,142 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
-    // ACTION BUTTONS (Platzhalter für 4.3+)
+    // FEHLER BUTTON + MODAL (Auftrag 4.3)
     // ========================================
 
-    // Fehler Button
+    const fehlerModalOverlay = document.getElementById('fehlerModalOverlay');
+    const fehlerModal = document.getElementById('fehlerModal');
+    const fehlerModalClose = document.getElementById('fehlerModalClose');
+    const fehlerModalCancel = document.getElementById('fehlerModalCancel');
+    const fehlerAnalyzeBtn = document.getElementById('fehlerAnalyzeBtn');
+    const fehlerInput = document.getElementById('fehlerInput');
+
+    // Fehler Button öffnet Modal
     if (btnFehler) {
         btnFehler.addEventListener('click', function() {
-            showActionInfo('Fehler', 'Problem melden - Diese Funktion wird in Auftrag 4.3 implementiert.');
+            openFehlerModal();
         });
     }
+
+    function openFehlerModal() {
+        if (fehlerModalOverlay) {
+            fehlerModalOverlay.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+            if (fehlerInput) {
+                fehlerInput.value = '';
+                fehlerInput.focus();
+            }
+        }
+    }
+
+    function closeFehlerModal() {
+        if (fehlerModalOverlay) {
+            fehlerModalOverlay.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+    }
+
+    // Modal schließen Events
+    if (fehlerModalClose) {
+        fehlerModalClose.addEventListener('click', closeFehlerModal);
+    }
+    if (fehlerModalCancel) {
+        fehlerModalCancel.addEventListener('click', closeFehlerModal);
+    }
+    if (fehlerModalOverlay) {
+        fehlerModalOverlay.addEventListener('click', function(e) {
+            if (e.target === fehlerModalOverlay) {
+                closeFehlerModal();
+            }
+        });
+    }
+
+    // ESC schließt Modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && fehlerModalOverlay && fehlerModalOverlay.classList.contains('visible')) {
+            closeFehlerModal();
+        }
+    });
+
+    // Analysieren Button im Modal
+    if (fehlerAnalyzeBtn) {
+        fehlerAnalyzeBtn.addEventListener('click', function() {
+            analyzeFehler();
+        });
+    }
+
+    // Enter in Textarea (Shift+Enter für neue Zeile)
+    if (fehlerInput) {
+        fehlerInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                analyzeFehler();
+            }
+        });
+    }
+
+    function analyzeFehler() {
+        const fehlerText = fehlerInput ? fehlerInput.value.trim() : '';
+
+        if (!fehlerText) {
+            alert('Bitte gib einen Fehler-Text ein.');
+            return;
+        }
+
+        if (!projektId) {
+            alert('Projekt-ID nicht gefunden.');
+            return;
+        }
+
+        // Button deaktivieren
+        if (fehlerAnalyzeBtn) {
+            fehlerAnalyzeBtn.disabled = true;
+            fehlerAnalyzeBtn.innerHTML = '<span class="btn-icon">&#8987;</span><span>Analysiere...</span>';
+        }
+
+        // Modal schließen
+        closeFehlerModal();
+
+        // Leere Chat-Anzeige entfernen
+        clearChatEmpty();
+
+        // User-Nachricht anzeigen
+        addChatMessage('user', `Fehler melden: ${fehlerText.substring(0, 100)}${fehlerText.length > 100 ? '...' : ''}`);
+
+        // API-Aufruf
+        fetch(`/projekt/${projektId}/fehler`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `fehler_text=${encodeURIComponent(fehlerText)}`
+        })
+        .then(response => response.text())
+        .then(html => {
+            // HTML in Chat-Container einfügen
+            chatContainer.insertAdjacentHTML('beforeend', html);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Button wieder aktivieren
+            if (fehlerAnalyzeBtn) {
+                fehlerAnalyzeBtn.disabled = false;
+                fehlerAnalyzeBtn.innerHTML = '<span class="btn-icon">&#128269;</span><span>Analysieren</span>';
+            }
+        })
+        .catch(error => {
+            console.error('Fehler bei Analyse:', error);
+            addChatMessage('system', 'Fehler bei der Analyse. Bitte versuche es erneut.');
+
+            if (fehlerAnalyzeBtn) {
+                fehlerAnalyzeBtn.disabled = false;
+                fehlerAnalyzeBtn.innerHTML = '<span class="btn-icon">&#128269;</span><span>Analysieren</span>';
+            }
+        });
+    }
+
+    // ========================================
+    // ACTION BUTTONS (Platzhalter für 4.4+)
+    // ========================================
 
     // Analysieren Button
     if (btnAnalysieren) {
@@ -381,5 +508,75 @@ function markAuftragFertig(auftragId) {
     .catch(error => {
         console.error('Fehler beim Status-Update:', error);
         alert('Fehler beim Aktualisieren des Status.');
+    });
+}
+
+/**
+ * Kopiert Fehler-Auftrag in die Zwischenablage (Auftrag 4.3)
+ */
+function copyFehlerAuftrag(fehlerId) {
+    const textElement = document.getElementById('fehlerAuftrag' + fehlerId);
+    const feedbackElement = document.getElementById('copyFehlerFeedback' + fehlerId);
+
+    if (!textElement) {
+        console.error('Fehler-Auftrag nicht gefunden:', fehlerId);
+        return;
+    }
+
+    const text = textElement.textContent;
+
+    // Moderne Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showCopyFeedback(feedbackElement);
+            })
+            .catch(err => {
+                console.error('Clipboard-Fehler:', err);
+                fallbackCopy(text, feedbackElement);
+            });
+    } else {
+        fallbackCopy(text, feedbackElement);
+    }
+}
+
+/**
+ * Sendet Feedback zur Fehler-Lösung (Auftrag 4.3)
+ */
+function sendFehlerFeedback(fehlerId, erfolg) {
+    const pathParts = window.location.pathname.split('/');
+    const projektIndex = pathParts.indexOf('projekt');
+    const projektId = pathParts[projektIndex + 1];
+
+    fetch(`/projekt/${projektId}/fehler/${fehlerId}/feedback`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `erfolg=${erfolg}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Feedback-Buttons ausblenden und Nachricht anzeigen
+            const feedbackResponse = document.getElementById('feedbackResponse' + fehlerId);
+            const messageElement = document.querySelector(`[data-fehler-id="${fehlerId}"]`);
+
+            if (messageElement) {
+                // Feedback-Buttons verstecken
+                const feedbackBtns = messageElement.querySelectorAll('.btn-success-feedback, .btn-fail-feedback');
+                feedbackBtns.forEach(btn => btn.style.display = 'none');
+            }
+
+            if (feedbackResponse) {
+                feedbackResponse.style.display = 'block';
+                feedbackResponse.innerHTML = erfolg
+                    ? '<span class="feedback-success">&#10003; Danke für dein Feedback! Die Erfolgsrate wurde aktualisiert.</span>'
+                    : '<span class="feedback-fail">&#10003; Feedback gespeichert. Wir verbessern unsere Lösungen.</span>';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Fehler beim Feedback:', error);
     });
 }

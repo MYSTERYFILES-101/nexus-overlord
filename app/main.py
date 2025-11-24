@@ -694,6 +694,58 @@ def auftrag_status_update(projekt_id, auftrag_id):
         return jsonify({'success': False, 'error': 'Auftrag nicht gefunden'}), 404
 
 
+@app.route('/projekt/<int:projekt_id>/fehler', methods=['POST'])
+def projekt_fehler(projekt_id):
+    """
+    Analysiert einen Fehler und gibt Lösung zurück (Auftrag 4.3)
+    Prüft DB nach bekannten Fehlern, sonst KI-Analyse
+    """
+    from app.services.database import get_projekt
+    from app.services.fehler_analyzer import analyze_fehler
+
+    # Projekt laden
+    projekt = get_projekt(projekt_id)
+    if not projekt:
+        return render_template('partials/chat_message.html',
+                             message_type='error',
+                             content='Projekt nicht gefunden.')
+
+    # Fehler-Text aus Request
+    fehler_text = request.form.get('fehler_text', '').strip()
+
+    if not fehler_text:
+        return render_template('partials/chat_message.html',
+                             message_type='error',
+                             content='Bitte gib einen Fehler-Text ein.')
+
+    # Fehler analysieren
+    result = analyze_fehler(fehler_text, projekt.get('name', 'NEXUS OVERLORD'))
+
+    # Als Chat-Nachricht zurückgeben
+    return render_template('partials/fehler_response.html',
+                         bekannt=result['bekannt'],
+                         kategorie=result['kategorie'],
+                         ursache=result['ursache'],
+                         loesung=result['loesung'],
+                         auftrag=result['auftrag'],
+                         fehler_id=result.get('fehler_id'),
+                         erfolgsrate=result.get('erfolgsrate', 0),
+                         anzahl=result.get('anzahl', 0))
+
+
+@app.route('/projekt/<int:projekt_id>/fehler/<int:fehler_id>/feedback', methods=['POST'])
+def fehler_feedback(projekt_id, fehler_id):
+    """
+    Feedback zur Fehler-Lösung (hat geholfen / hat nicht geholfen) (Auftrag 4.3)
+    """
+    from app.services.database import update_fehler_erfolgsrate
+
+    erfolg = request.form.get('erfolg', 'true').lower() == 'true'
+    update_fehler_erfolgsrate(fehler_id, erfolg)
+
+    return jsonify({'success': True, 'message': 'Feedback gespeichert'})
+
+
 if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5000))

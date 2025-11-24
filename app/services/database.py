@@ -342,3 +342,149 @@ def get_projekt_stats(projekt_id: int) -> dict:
 
     conn.close()
     return stats
+
+
+# ========================================
+# FEHLER-FUNKTIONEN (Auftrag 4.3)
+# ========================================
+
+def search_fehler(fehler_text: str) -> dict:
+    """
+    Sucht nach bekanntem Fehler in der Datenbank (Pattern-Matching)
+
+    Args:
+        fehler_text: Fehler-Text vom User
+
+    Returns:
+        dict: Gefundener Fehler oder None
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Suche nach Muster im Fehler-Text (bidirektional)
+    cursor.execute("""
+        SELECT * FROM fehler
+        WHERE ? LIKE '%' || muster || '%'
+        OR muster LIKE '%' || ? || '%'
+        ORDER BY erfolgsrate DESC, anzahl DESC
+        LIMIT 1
+    """, (fehler_text, fehler_text))
+
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return dict(row)
+    return None
+
+
+def save_fehler(muster: str, kategorie: str, loesung: str) -> int:
+    """
+    Speichert neuen Fehler in der Datenbank
+
+    Args:
+        muster: Fehler-Muster für zukünftige Erkennung
+        kategorie: Fehler-Kategorie (python, npm, permission, etc.)
+        loesung: Lösung für den Fehler
+
+    Returns:
+        int: Fehler-ID
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO fehler (muster, kategorie, loesung, erfolgsrate, anzahl, created_at)
+        VALUES (?, ?, ?, 100, 1, datetime('now'))
+    """, (muster, kategorie, loesung))
+
+    fehler_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    return fehler_id
+
+
+def increment_fehler_count(fehler_id: int) -> None:
+    """
+    Erhöht den Zähler für einen bekannten Fehler
+
+    Args:
+        fehler_id: Fehler-ID
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE fehler
+        SET anzahl = anzahl + 1
+        WHERE id = ?
+    """, (fehler_id,))
+
+    conn.commit()
+    conn.close()
+
+
+def update_fehler_erfolgsrate(fehler_id: int, erfolg: bool) -> None:
+    """
+    Aktualisiert die Erfolgsrate eines Fehlers
+
+    Args:
+        fehler_id: Fehler-ID
+        erfolg: True wenn Lösung erfolgreich war
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Berechne neue Erfolgsrate basierend auf Anzahl
+    cursor.execute("SELECT anzahl, erfolgsrate FROM fehler WHERE id = ?", (fehler_id,))
+    row = cursor.fetchone()
+
+    if row:
+        anzahl = row['anzahl']
+        alte_rate = row['erfolgsrate']
+        # Gleitender Durchschnitt
+        neue_rate = ((alte_rate * (anzahl - 1)) + (100 if erfolg else 0)) / anzahl
+
+        cursor.execute("""
+            UPDATE fehler
+            SET erfolgsrate = ?
+            WHERE id = ?
+        """, (neue_rate, fehler_id))
+
+        conn.commit()
+
+    conn.close()
+
+
+def get_fehler_stats() -> dict:
+    """
+    Gibt Fehler-Statistiken zurück
+
+    Returns:
+        dict: Statistiken über Fehler
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) as total FROM fehler")
+    total = cursor.fetchone()['total']
+
+    cursor.execute("SELECT AVG(erfolgsrate) as avg_rate FROM fehler")
+    avg_rate = cursor.fetchone()['avg_rate'] or 0
+
+    cursor.execute("""
+        SELECT kategorie, COUNT(*) as count
+        FROM fehler
+        GROUP BY kategorie
+        ORDER BY count DESC
+    """)
+    kategorien = {row['kategorie']: row['count'] for row in cursor.fetchall()}
+
+    conn.close()
+
+    return {
+        'total': total,
+        'avg_erfolgsrate': round(avg_rate, 1),
+        'kategorien': kategorien
+    }

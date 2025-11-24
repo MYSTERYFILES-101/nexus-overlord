@@ -220,6 +220,43 @@
         </main>
     </div>
 
+    <!-- FEHLER MODAL (Auftrag 4.3) -->
+    <div class="modal-overlay" id="fehlerModalOverlay">
+        <div class="modal" id="fehlerModal">
+            <div class="modal-header">
+                <h3><span class="modal-icon">&#128721;</span> Fehler melden</h3>
+                <button class="modal-close" id="fehlerModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">
+                    Beschreibe den Fehler oder kopiere die Fehlermeldung aus der Konsole.
+                </p>
+                <textarea
+                    id="fehlerInput"
+                    class="fehler-textarea"
+                    placeholder="Fehler-Text hier einfügen...
+
+Beispiel:
+ModuleNotFoundError: No module named 'flask'
+oder
+Error: EACCES: permission denied"
+                    rows="8"
+                ></textarea>
+                <div class="modal-hint">
+                    <span class="hint-icon">&#128161;</span>
+                    <span>Das System prüft zuerst die Fehler-Datenbank. Falls bekannt, bekommst du sofort die Lösung!</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn btn-cancel" id="fehlerModalCancel">Abbrechen</button>
+                <button class="modal-btn btn-analyze" id="fehlerAnalyzeBtn">
+                    <span class="btn-icon">&#128269;</span>
+                    <span>Analysieren</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/steuern.js') }}"></script>
