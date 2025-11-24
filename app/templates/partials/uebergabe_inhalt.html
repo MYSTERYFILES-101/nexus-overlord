@@ -1,0 +1,38 @@
+{#
+NEXUS OVERLORD v2.0 - Übergabe Inhalt Template (Auftrag 4.5)
+Zeigt den Inhalt einer Übergabe-Datei an
+#}
+
+<div class="uebergabe-inhalt-wrapper">
+    <!-- Header Info -->
+    <div class="inhalt-header">
+        <div class="inhalt-title">
+            <span class="title-icon">&#128196;</span>
+            <span>{{ uebergabe.datei_name or 'Übergabe' }}</span>
+        </div>
+        <div class="inhalt-meta">
+            {% if uebergabe.auftrag_nummer %}
+            <span class="meta-badge">Auftrag {{ uebergabe.phase_nummer }}.{{ uebergabe.auftrag_nummer }}</span>
+            {% endif %}
+            <span class="meta-date">{{ uebergabe.created_at[:16].replace('T', ' ') if uebergabe.created_at else '' }}</span>
+        </div>
+    </div>
+
+    <!-- Datei-Inhalt -->
+    <div class="inhalt-body">
+        <pre class="inhalt-text">{{ inhalt }}</pre>
+    </div>
+
+    <!-- Actions -->
+    <div class="inhalt-actions">
+        <button class="action-btn-small btn-copy" onclick="copyUebergabeInhalt()" title="Inhalt kopieren">
+            <span class="btn-icon">&#128203;</span>
+            <span class="btn-text">Kopieren</span>
+        </button>
+    </div>
+
+    <!-- Copy Feedback -->
+    <div class="copy-feedback" id="copyUebergabeFeedback" style="display: none;">
+        &#10003; In Zwischenablage kopiert!
+    </div>
+</div>

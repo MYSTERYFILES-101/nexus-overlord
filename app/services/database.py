@@ -600,3 +600,172 @@ def get_projekt_analyse(projekt_id: int) -> dict:
         'letzte_erledigte': letzte_erledigte,
         'offene_fehler': offene_fehler
     }
+
+
+# ========================================
+# ÜBERGABEN-FUNKTIONEN (Auftrag 4.5)
+# ========================================
+
+def get_projekt_uebergaben(projekt_id: int) -> list:
+    """
+    Holt alle Übergaben eines Projekts.
+
+    Args:
+        projekt_id: Projekt-ID
+
+    Returns:
+        list: Liste der Übergaben mit Auftrag-Infos
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            u.id,
+            u.datei_pfad,
+            u.datei_name,
+            u.created_at,
+            u.auftrag_id,
+            u.projekt_id,
+            a.nummer as auftrag_nummer,
+            a.name as auftrag_name,
+            p.nummer as phase_nummer,
+            p.name as phase_name
+        FROM uebergaben u
+        LEFT JOIN auftraege a ON u.auftrag_id = a.id
+        LEFT JOIN phasen p ON a.phase_id = p.id
+        WHERE u.projekt_id = ? OR p.projekt_id = ?
+        ORDER BY u.created_at DESC
+    """, (projekt_id, projekt_id))
+
+    uebergaben = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return uebergaben
+
+
+def save_uebergabe(projekt_id: int, auftrag_id: int, datei_pfad: str, datei_name: str) -> int:
+    """
+    Speichert eine neue Übergabe.
+
+    Args:
+        projekt_id: Projekt-ID
+        auftrag_id: Auftrag-ID (kann None sein)
+        datei_pfad: Pfad zur Datei
+        datei_name: Original-Dateiname
+
+    Returns:
+        int: ID der neuen Übergabe
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO uebergaben (projekt_id, auftrag_id, datei_pfad, datei_name, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+    """, (projekt_id, auftrag_id if auftrag_id else None, datei_pfad, datei_name))
+
+    uebergabe_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return uebergabe_id
+
+
+def get_uebergabe(uebergabe_id: int) -> dict:
+    """
+    Holt eine einzelne Übergabe.
+
+    Args:
+        uebergabe_id: Übergabe-ID
+
+    Returns:
+        dict: Übergabe-Daten oder None
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            u.id,
+            u.datei_pfad,
+            u.datei_name,
+            u.created_at,
+            u.auftrag_id,
+            u.projekt_id,
+            a.nummer as auftrag_nummer,
+            a.name as auftrag_name,
+            p.nummer as phase_nummer
+        FROM uebergaben u
+        LEFT JOIN auftraege a ON u.auftrag_id = a.id
+        LEFT JOIN phasen p ON a.phase_id = p.id
+        WHERE u.id = ?
+    """, (uebergabe_id,))
+
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def delete_uebergabe(uebergabe_id: int) -> bool:
+    """
+    Löscht eine Übergabe.
+
+    Args:
+        uebergabe_id: Übergabe-ID
+
+    Returns:
+        bool: True wenn erfolgreich
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Erst den Dateipfad holen für physisches Löschen
+    cursor.execute("SELECT datei_pfad FROM uebergaben WHERE id = ?", (uebergabe_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
+        return False
+
+    datei_pfad = row['datei_pfad']
+
+    # Aus DB löschen
+    cursor.execute("DELETE FROM uebergaben WHERE id = ?", (uebergabe_id,))
+    conn.commit()
+    conn.close()
+
+    # Physische Datei löschen (falls vorhanden)
+    try:
+        if os.path.exists(datei_pfad):
+            os.remove(datei_pfad)
+    except Exception:
+        pass  # Ignorieren wenn Datei nicht gelöscht werden kann
+
+    return True
+
+
+def get_current_auftrag_for_projekt(projekt_id: int) -> dict:
+    """
+    Holt den aktuell in Arbeit befindlichen Auftrag eines Projekts.
+
+    Args:
+        projekt_id: Projekt-ID
+
+    Returns:
+        dict: Auftrag-Daten oder None
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT a.id, a.nummer, a.name, p.nummer as phase_nummer
+        FROM auftraege a
+        JOIN phasen p ON a.phase_id = p.id
+        WHERE p.projekt_id = ?
+        AND a.status = 'in_arbeit'
+        ORDER BY p.nummer, a.nummer
+        LIMIT 1
+    """, (projekt_id,))
+
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None

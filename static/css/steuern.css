@@ -1716,3 +1716,422 @@
         flex: 1;
     }
 }
+
+
+/* ========================================
+   ÜBERGABEN MODAL (Auftrag 4.5)
+   ======================================== */
+
+/* Größeres Modal für Übergaben */
+.modal-large {
+    max-width: 600px;
+    width: 95%;
+}
+
+.modal-large .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Section Headers */
+.modal-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.section-icon {
+    font-size: 1.4rem;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Upload Zone */
+.upload-zone {
+    border: 2px dashed #667eea;
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9ff;
+}
+
+.upload-zone:hover {
+    border-color: #764ba2;
+    background: #f0f2ff;
+}
+
+.upload-zone.dragover {
+    border-color: #28a745;
+    background: #e8f5e9;
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    opacity: 0.7;
+}
+
+.upload-text {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.upload-main {
+    font-weight: 600;
+    color: #333;
+    font-size: 1rem;
+}
+
+.upload-sub {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.upload-info {
+    color: #999;
+    font-size: 0.8rem;
+    margin-top: 10px;
+}
+
+/* Current Auftrag Info */
+.current-auftrag-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 15px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #1565c0;
+}
+
+.current-auftrag-info.no-auftrag {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.info-icon {
+    font-size: 1.2rem;
+}
+
+/* Upload Status */
+.upload-status {
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-size: 0.9rem;
+}
+
+.status-uploading {
+    color: #1565c0;
+}
+
+.status-success {
+    color: #2e7d32;
+}
+
+.status-error {
+    color: #c62828;
+}
+
+/* Modal Divider */
+.modal-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 20px 0;
+}
+
+/* Übergaben Liste */
+.uebergaben-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.uebergabe-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.uebergabe-item:hover {
+    background: #e9ecef;
+}
+
+.uebergabe-icon {
+    font-size: 1.5rem;
+    opacity: 0.7;
+}
+
+.uebergabe-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.uebergabe-name {
+    font-weight: 500;
+    color: #333;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.uebergabe-meta {
+    display: flex;
+    gap: 10px;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 3px;
+}
+
+.meta-auftrag {
+    color: #667eea;
+    font-weight: 500;
+}
+
+.meta-auftrag.meta-none {
+    color: #999;
+    font-style: italic;
+}
+
+.uebergabe-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.uebergabe-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.uebergabe-btn.btn-view {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.uebergabe-btn.btn-view:hover {
+    background: #bbdefb;
+}
+
+.uebergabe-btn.btn-delete {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.uebergabe-btn.btn-delete:hover {
+    background: #ffcdd2;
+}
+
+/* Leere Liste */
+.uebergaben-leer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+    color: #999;
+}
+
+.leer-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.leer-text {
+    font-size: 0.95rem;
+}
+
+/* Viewer */
+.uebergabe-viewer {
+    background: #fff;
+}
+
+.viewer-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 15px;
+}
+
+.viewer-back {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.viewer-back:hover {
+    background: #f0f2ff;
+}
+
+.viewer-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.viewer-content {
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+/* Übergabe Inhalt */
+.uebergabe-inhalt-wrapper {
+    padding: 10px 0;
+}
+
+.inhalt-header {
+    margin-bottom: 15px;
+}
+
+.inhalt-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.title-icon {
+    font-size: 1.3rem;
+}
+
+.inhalt-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 0.85rem;
+}
+
+.meta-badge {
+    background: #667eea;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.meta-date {
+    color: #666;
+}
+
+.inhalt-body {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.inhalt-text {
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+    margin: 0;
+}
+
+.inhalt-actions {
+    margin-top: 15px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.spinner-icon {
+    font-size: 2rem;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* FadeOut Animation */
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-20px); }
+}
+
+/* Error Message */
+.error-message {
+    padding: 20px;
+    text-align: center;
+    color: #c62828;
+    background: #ffebee;
+    border-radius: 8px;
+}
+
+/* Responsive Übergaben */
+@media (max-width: 768px) {
+    .modal-large {
+        max-width: 100%;
+        margin: 10px;
+    }
+
+    .upload-zone {
+        padding: 20px 15px;
+    }
+
+    .upload-icon {
+        font-size: 2.5rem;
+    }
+
+    .uebergabe-item {
+        flex-wrap: wrap;
+    }
+
+    .uebergabe-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+
+    .uebergaben-liste {
+        max-height: 250px;
+    }
+}

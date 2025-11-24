@@ -379,15 +379,159 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
-    // ACTION BUTTONS (Platzhalter für 4.5+)
+    // ÜBERGABEN BUTTON + MODAL (Auftrag 4.5)
     // ========================================
 
-    // Übergaben Button
+    const uebergabenModalOverlay = document.getElementById('uebergabenModalOverlay');
+    const uebergabenModal = document.getElementById('uebergabenModal');
+    const uebergabenModalClose = document.getElementById('uebergabenModalClose');
+    const uebergabenModalBody = document.getElementById('uebergabenModalBody');
+
+    // Übergaben Button öffnet Modal
     if (btnUebergaben) {
         btnUebergaben.addEventListener('click', function() {
-            showActionInfo('Übergaben', 'Übergabe-Dokumente anzeigen - Diese Funktion wird in Auftrag 4.5 implementiert.');
+            openUebergabenModal();
         });
     }
+
+    function openUebergabenModal() {
+        if (!projektId) {
+            addChatMessage('system', 'Fehler: Projekt-ID nicht gefunden.');
+            return;
+        }
+
+        if (uebergabenModalOverlay) {
+            uebergabenModalOverlay.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+
+            // Inhalt laden
+            loadUebergabenListe();
+        }
+    }
+
+    function closeUebergabenModal() {
+        if (uebergabenModalOverlay) {
+            uebergabenModalOverlay.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function loadUebergabenListe() {
+        // Loading-Spinner anzeigen
+        uebergabenModalBody.innerHTML = '<div class="loading-spinner"><span class="spinner-icon">&#8987;</span><span>Lädt...</span></div>';
+
+        fetch(`/projekt/${projektId}/uebergaben`)
+            .then(response => response.text())
+            .then(html => {
+                uebergabenModalBody.innerHTML = html;
+                setupUploadZone();
+            })
+            .catch(error => {
+                console.error('Fehler beim Laden der Übergaben:', error);
+                uebergabenModalBody.innerHTML = '<div class="error-message">Fehler beim Laden der Übergaben.</div>';
+            });
+    }
+
+    function setupUploadZone() {
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        if (!uploadZone || !fileInput) return;
+
+        // Click zum Auswählen
+        uploadZone.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Datei ausgewählt
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                uploadFile(this.files[0]);
+            }
+        });
+
+        // Drag & Drop Events
+        uploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('dragover');
+
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                uploadFile(e.dataTransfer.files[0]);
+            }
+        });
+    }
+
+    function uploadFile(file) {
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        // Status anzeigen
+        uploadStatus.style.display = 'block';
+        uploadStatus.innerHTML = '<span class="status-uploading">&#8987; Lädt hoch: ' + file.name + '</span>';
+
+        // FormData erstellen
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Upload
+        fetch(`/projekt/${projektId}/uebergaben/upload`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                uploadStatus.innerHTML = '<span class="status-success">&#10003; Hochgeladen: ' + data.filename + '</span>';
+
+                // Liste nach 1.5 Sekunden neu laden
+                setTimeout(() => {
+                    loadUebergabenListe();
+                }, 1500);
+            } else {
+                uploadStatus.innerHTML = '<span class="status-error">&#10007; Fehler: ' + data.error + '</span>';
+            }
+        })
+        .catch(error => {
+            console.error('Upload-Fehler:', error);
+            uploadStatus.innerHTML = '<span class="status-error">&#10007; Upload fehlgeschlagen</span>';
+        });
+    }
+
+    // Modal schließen Events
+    if (uebergabenModalClose) {
+        uebergabenModalClose.addEventListener('click', closeUebergabenModal);
+    }
+    if (uebergabenModalOverlay) {
+        uebergabenModalOverlay.addEventListener('click', function(e) {
+            if (e.target === uebergabenModalOverlay) {
+                closeUebergabenModal();
+            }
+        });
+    }
+
+    // ESC schließt Modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && uebergabenModalOverlay && uebergabenModalOverlay.classList.contains('visible')) {
+            closeUebergabenModal();
+        }
+    });
+
+    // ========================================
+    // ACTION BUTTONS (Platzhalter für 4.6)
+    // ========================================
 
     // Export Button
     if (btnExport) {
@@ -639,6 +783,137 @@ function copyAnalyse() {
     const text = textElement.textContent;
 
     // Moderne Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showCopyFeedback(feedbackElement);
+            })
+            .catch(err => {
+                console.error('Clipboard-Fehler:', err);
+                fallbackCopy(text, feedbackElement);
+            });
+    } else {
+        fallbackCopy(text, feedbackElement);
+    }
+}
+
+// ========================================
+// ÜBERGABEN FUNKTIONEN (Auftrag 4.5)
+// ========================================
+
+/**
+ * Zeigt Inhalt einer Übergabe an
+ */
+function viewUebergabe(uebergabeId) {
+    const pathParts = window.location.pathname.split('/');
+    const projektIndex = pathParts.indexOf('projekt');
+    const projektId = pathParts[projektIndex + 1];
+
+    const modalContent = document.querySelector('.uebergaben-modal-content');
+    const viewer = document.getElementById('uebergabeViewer');
+    const viewerContent = document.getElementById('viewerContent');
+    const viewerTitle = document.getElementById('viewerTitle');
+
+    // Content verstecken, Viewer anzeigen
+    if (modalContent) modalContent.style.display = 'none';
+    if (viewer) viewer.style.display = 'block';
+
+    // Loading
+    viewerContent.innerHTML = '<div class="loading-spinner"><span class="spinner-icon">&#8987;</span><span>Lädt...</span></div>';
+
+    fetch(`/projekt/${projektId}/uebergaben/${uebergabeId}`)
+        .then(response => response.text())
+        .then(html => {
+            viewerContent.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden der Übergabe:', error);
+            viewerContent.innerHTML = '<div class="error-message">Fehler beim Laden der Übergabe.</div>';
+        });
+}
+
+/**
+ * Schließt Viewer und zeigt Liste
+ */
+function closeViewer() {
+    const modalContent = document.querySelector('.uebergaben-modal-content');
+    const viewer = document.getElementById('uebergabeViewer');
+
+    if (modalContent) modalContent.style.display = 'block';
+    if (viewer) viewer.style.display = 'none';
+}
+
+/**
+ * Löscht eine Übergabe
+ */
+function deleteUebergabe(uebergabeId) {
+    if (!confirm('Übergabe wirklich löschen?')) {
+        return;
+    }
+
+    const pathParts = window.location.pathname.split('/');
+    const projektIndex = pathParts.indexOf('projekt');
+    const projektId = pathParts[projektIndex + 1];
+
+    fetch(`/projekt/${projektId}/uebergaben/${uebergabeId}/delete`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Item aus Liste entfernen
+            const item = document.querySelector(`.uebergabe-item[data-id="${uebergabeId}"]`);
+            if (item) {
+                item.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    item.remove();
+                    // Zähler aktualisieren
+                    updateUebergabenCount();
+                }, 300);
+            }
+        } else {
+            alert('Fehler: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Fehler beim Löschen:', error);
+        alert('Fehler beim Löschen der Übergabe.');
+    });
+}
+
+/**
+ * Aktualisiert den Übergaben-Zähler
+ */
+function updateUebergabenCount() {
+    const items = document.querySelectorAll('.uebergabe-item');
+    const countElement = document.querySelector('.section-title');
+    if (countElement && countElement.textContent.includes('Bisherige')) {
+        countElement.textContent = `Bisherige Übergaben (${items.length})`;
+    }
+
+    // Leere Nachricht anzeigen wenn keine mehr
+    if (items.length === 0) {
+        const liste = document.getElementById('uebergabenListe');
+        if (liste) {
+            liste.innerHTML = '<div class="uebergaben-leer"><span class="leer-icon">&#128193;</span><span class="leer-text">Noch keine Übergaben vorhanden</span></div>';
+        }
+    }
+}
+
+/**
+ * Kopiert Übergabe-Inhalt in die Zwischenablage
+ */
+function copyUebergabeInhalt() {
+    const textElement = document.querySelector('.inhalt-text');
+    const feedbackElement = document.getElementById('copyUebergabeFeedback');
+
+    if (!textElement) {
+        console.error('Inhalt nicht gefunden');
+        return;
+    }
+
+    const text = textElement.textContent;
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text)
             .then(() => {

@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from dotenv import load_dotenv
+from datetime import datetime
 import threading
 import time
 import markdown2
@@ -775,6 +776,151 @@ def projekt_analysieren(projekt_id):
                          projekt_name=projekt.get('name', 'Unbekannt'),
                          zusammenfassung=result['zusammenfassung'],
                          daten=result['daten'])
+
+
+# ========================================
+# ÜBERGABEN ROUTES (Auftrag 4.5)
+# ========================================
+
+ALLOWED_EXTENSIONS = {'md', 'txt', 'json', 'log'}
+MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
+
+
+def allowed_file(filename):
+    """Prüft ob Dateiendung erlaubt ist"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/projekt/<int:projekt_id>/uebergaben', methods=['GET'])
+def uebergaben_liste(projekt_id):
+    """
+    Holt Liste aller Übergaben eines Projekts (Auftrag 4.5)
+    """
+    from app.services.database import get_projekt, get_projekt_uebergaben, get_current_auftrag_for_projekt
+
+    projekt = get_projekt(projekt_id)
+    if not projekt:
+        return jsonify({'success': False, 'error': 'Projekt nicht gefunden'}), 404
+
+    uebergaben = get_projekt_uebergaben(projekt_id)
+    aktueller_auftrag = get_current_auftrag_for_projekt(projekt_id)
+
+    return render_template('partials/uebergaben_modal.html',
+                         projekt=projekt,
+                         uebergaben=uebergaben,
+                         aktueller_auftrag=aktueller_auftrag)
+
+
+@app.route('/projekt/<int:projekt_id>/uebergaben/upload', methods=['POST'])
+def uebergabe_upload(projekt_id):
+    """
+    Lädt eine Übergabe-Datei hoch (Auftrag 4.5)
+    """
+    from werkzeug.utils import secure_filename
+    from app.services.database import get_projekt, save_uebergabe, get_current_auftrag_for_projekt
+
+    projekt = get_projekt(projekt_id)
+    if not projekt:
+        return jsonify({'success': False, 'error': 'Projekt nicht gefunden'}), 404
+
+    # Datei aus Request
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'Keine Datei hochgeladen'}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Keine Datei ausgewählt'}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'error': 'Dateityp nicht erlaubt. Erlaubt: .md, .txt, .json, .log'}), 400
+
+    # Dateigröße prüfen
+    file.seek(0, 2)  # Zum Ende
+    size = file.tell()
+    file.seek(0)  # Zurück zum Anfang
+
+    if size > MAX_CONTENT_LENGTH:
+        return jsonify({'success': False, 'error': 'Datei zu groß. Max 5MB erlaubt.'}), 400
+
+    # Aktuellen Auftrag holen (falls vorhanden)
+    aktueller_auftrag = get_current_auftrag_for_projekt(projekt_id)
+    auftrag_id = aktueller_auftrag['id'] if aktueller_auftrag else None
+
+    # Dateiname generieren
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
+    original_name = secure_filename(file.filename)
+
+    if aktueller_auftrag:
+        auftrag_suffix = f"auftrag-{aktueller_auftrag['phase_nummer']}-{aktueller_auftrag['nummer']}"
+        filename = f"{timestamp}_{auftrag_suffix}_{original_name}"
+    else:
+        filename = f"{timestamp}_{original_name}"
+
+    # Upload-Ordner erstellen
+    upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                                  'projekt', 'uebergaben')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    # Dateipfad
+    filepath = os.path.join(upload_folder, filename)
+
+    # Datei speichern
+    try:
+        file.save(filepath)
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Fehler beim Speichern: {str(e)}'}), 500
+
+    # In Datenbank eintragen
+    uebergabe_id = save_uebergabe(projekt_id, auftrag_id, filepath, original_name)
+
+    return jsonify({
+        'success': True,
+        'uebergabe_id': uebergabe_id,
+        'filename': filename,
+        'auftrag': f"{aktueller_auftrag['phase_nummer']}.{aktueller_auftrag['nummer']}" if aktueller_auftrag else None
+    })
+
+
+@app.route('/projekt/<int:projekt_id>/uebergaben/<int:uebergabe_id>', methods=['GET'])
+def uebergabe_anzeigen(projekt_id, uebergabe_id):
+    """
+    Zeigt Inhalt einer Übergabe an (Auftrag 4.5)
+    """
+    from app.services.database import get_uebergabe
+
+    uebergabe = get_uebergabe(uebergabe_id)
+
+    if not uebergabe:
+        return jsonify({'success': False, 'error': 'Übergabe nicht gefunden'}), 404
+
+    # Datei-Inhalt lesen
+    try:
+        with open(uebergabe['datei_pfad'], 'r', encoding='utf-8') as f:
+            inhalt = f.read()
+    except FileNotFoundError:
+        inhalt = '[Datei nicht gefunden]'
+    except Exception as e:
+        inhalt = f'[Fehler beim Lesen: {str(e)}]'
+
+    return render_template('partials/uebergabe_inhalt.html',
+                         uebergabe=uebergabe,
+                         inhalt=inhalt)
+
+
+@app.route('/projekt/<int:projekt_id>/uebergaben/<int:uebergabe_id>/delete', methods=['POST'])
+def uebergabe_loeschen(projekt_id, uebergabe_id):
+    """
+    Löscht eine Übergabe (Auftrag 4.5)
+    """
+    from app.services.database import delete_uebergabe
+
+    success = delete_uebergabe(uebergabe_id)
+
+    if success:
+        return jsonify({'success': True, 'message': 'Übergabe gelöscht'})
+    else:
+        return jsonify({'success': False, 'error': 'Übergabe nicht gefunden'}), 404
 
 
 if __name__ == '__main__':

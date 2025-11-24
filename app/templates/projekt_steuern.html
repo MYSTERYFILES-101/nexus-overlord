@@ -257,6 +257,23 @@ Error: EACCES: permission denied"
         </div>
     </div>
 
+    <!-- ÜBERGABEN MODAL (Auftrag 4.5) -->
+    <div class="modal-overlay" id="uebergabenModalOverlay">
+        <div class="modal modal-large" id="uebergabenModal">
+            <div class="modal-header">
+                <h3><span class="modal-icon">&#128193;</span> Übergaben</h3>
+                <button class="modal-close" id="uebergabenModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="uebergabenModalBody">
+                <!-- Wird per HTMX geladen -->
+                <div class="loading-spinner">
+                    <span class="spinner-icon">&#8987;</span>
+                    <span>Lädt...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/steuern.js') }}"></script>

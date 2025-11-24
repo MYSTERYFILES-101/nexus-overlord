@@ -1,0 +1,91 @@
+{#
+NEXUS OVERLORD v2.0 - Übergaben Modal Template (Auftrag 4.5)
+Upload-Bereich + Liste bisheriger Übergaben
+#}
+
+<div class="uebergaben-modal-content">
+    <!-- Header -->
+    <div class="modal-section-header">
+        <span class="section-icon">&#128228;</span>
+        <span class="section-title">Datei hochladen</span>
+    </div>
+
+    <!-- Upload-Bereich -->
+    <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">&#128194;</div>
+        <div class="upload-text">
+            <span class="upload-main">Datei hier ablegen</span>
+            <span class="upload-sub">oder klicken zum Auswählen</span>
+        </div>
+        <div class="upload-info">.md, .txt, .json, .log (max 5MB)</div>
+        <input type="file" id="fileInput" accept=".md,.txt,.json,.log" style="display: none;">
+    </div>
+
+    <!-- Aktueller Auftrag Info -->
+    {% if aktueller_auftrag %}
+    <div class="current-auftrag-info">
+        <span class="info-icon">&#128279;</span>
+        <span>Wird verknüpft mit: <strong>{{ aktueller_auftrag.phase_nummer }}.{{ aktueller_auftrag.nummer }} - {{ aktueller_auftrag.name }}</strong></span>
+    </div>
+    {% else %}
+    <div class="current-auftrag-info no-auftrag">
+        <span class="info-icon">&#128712;</span>
+        <span>Kein Auftrag in Arbeit - Datei wird ohne Verknüpfung gespeichert</span>
+    </div>
+    {% endif %}
+
+    <!-- Upload Status (wird per JS aktualisiert) -->
+    <div class="upload-status" id="uploadStatus" style="display: none;"></div>
+
+    <!-- Trennlinie -->
+    <div class="modal-divider"></div>
+
+    <!-- Bisherige Übergaben -->
+    <div class="modal-section-header">
+        <span class="section-icon">&#128196;</span>
+        <span class="section-title">Bisherige Übergaben ({{ uebergaben|length }})</span>
+    </div>
+
+    <div class="uebergaben-liste" id="uebergabenListe">
+        {% if uebergaben %}
+            {% for u in uebergaben %}
+            <div class="uebergabe-item" data-id="{{ u.id }}">
+                <div class="uebergabe-icon">&#128196;</div>
+                <div class="uebergabe-info">
+                    <div class="uebergabe-name">{{ u.datei_name or u.datei_pfad.split('/')[-1] }}</div>
+                    <div class="uebergabe-meta">
+                        {% if u.auftrag_nummer %}
+                        <span class="meta-auftrag">Auftrag {{ u.phase_nummer }}.{{ u.auftrag_nummer }}</span>
+                        {% else %}
+                        <span class="meta-auftrag meta-none">Ohne Auftrag</span>
+                        {% endif %}
+                        <span class="meta-date">{{ u.created_at[:16].replace('T', ' ') if u.created_at else 'Unbekannt' }}</span>
+                    </div>
+                </div>
+                <div class="uebergabe-actions">
+                    <button class="uebergabe-btn btn-view" onclick="viewUebergabe({{ u.id }})" title="Anzeigen">
+                        &#128065;
+                    </button>
+                    <button class="uebergabe-btn btn-delete" onclick="deleteUebergabe({{ u.id }})" title="Löschen">
+                        &#128465;
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="uebergaben-leer">
+                <span class="leer-icon">&#128193;</span>
+                <span class="leer-text">Noch keine Übergaben vorhanden</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Inhalt-Anzeige (wird per HTMX geladen) -->
+<div class="uebergabe-viewer" id="uebergabeViewer" style="display: none;">
+    <div class="viewer-header">
+        <button class="viewer-back" onclick="closeViewer()">&#8592; Zurück</button>
+        <span class="viewer-title" id="viewerTitle"></span>
+    </div>
+    <div class="viewer-content" id="viewerContent"></div>
+</div>
