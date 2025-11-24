@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ projekt.name }} - Steuern | NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/steuern.css') }}">
+</head>
+<body class="steuern-body">
+    <!-- Mobile Sidebar Toggle -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <span class="toggle-icon">&#9776;</span>
+    </button>
+
+    <div class="steuern-container">
+        <!-- LINKE SIDEBAR -->
+        <aside class="steuern-sidebar" id="sidebar">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header">
+                <a href="/" class="sidebar-logo">
+                    <span class="logo-icon">&#9670;</span>
+                    <span class="logo-text">NEXUS</span>
+                </a>
+                <button class="sidebar-close" id="sidebarClose">&times;</button>
+            </div>
+
+            <!-- Projektliste -->
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">
+                    <span class="title-icon">&#128194;</span> Projekte
+                </h3>
+                <div class="projekt-liste-sidebar">
+                    {% for p in projekte %}
+                    <a href="/projekt/{{ p.id }}/steuern"
+                       class="projekt-item {% if p.id == projekt.id %}aktiv{% endif %}">
+                        <span class="projekt-status-dot status-{{ p.status }}"></span>
+                        <span class="projekt-name">{{ p.name }}</span>
+                        {% if p.id == projekt.id %}
+                        <span class="projekt-aktiv-badge">aktiv</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Phasen-Navigation -->
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">
+                    <span class="title-icon">&#128203;</span> Phasen
+                </h3>
+                <div class="phasen-liste-sidebar">
+                    {% if projekt.phasen %}
+                        {% for phase in projekt.phasen %}
+                        <div class="phase-item {% if aktuelle_phase and phase.id == aktuelle_phase.id %}aktiv{% endif %}"
+                             data-phase-id="{{ phase.id }}">
+                            <span class="phase-status-icon">
+                                {% if phase.status == 'fertig' %}
+                                    &#10003;
+                                {% elif phase.status == 'in_arbeit' %}
+                                    &#9679;
+                                {% else %}
+                                    &#9675;
+                                {% endif %}
+                            </span>
+                            <span class="phase-nummer">Phase {{ phase.nummer }}</span>
+                            <span class="phase-name">{{ phase.name }}</span>
+                            {% if phase.auftraege %}
+                            <span class="phase-auftraege-count">{{ phase.auftraege|length }}</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-phasen-info">
+                            <span class="info-icon">&#9432;</span>
+                            <span>Noch keine Phasen generiert</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <a href="/projekt/{{ projekt.id }}" class="sidebar-link">
+                    <span>&#128196;</span> Projekt-Übersicht
+                </a>
+                <a href="/projekt/liste" class="sidebar-link">
+                    <span>&#128194;</span> Alle Projekte
+                </a>
+            </div>
+        </aside>
+
+        <!-- HAUPTBEREICH (MITTE) -->
+        <main class="steuern-main">
+            <!-- Header mit Projekt-Info -->
+            <header class="steuern-header">
+                <div class="header-left">
+                    <h1 class="projekt-titel">{{ projekt.name }}</h1>
+                    <span class="projekt-status-badge status-{{ projekt.status }}">
+                        {% if projekt.status == 'bereit' %}
+                            &#10003; BEREIT
+                        {% elif projekt.status == 'in_arbeit' %}
+                            &#8635; IN ARBEIT
+                        {% elif projekt.status == 'fertig' %}
+                            &#127881; FERTIG
+                        {% else %}
+                            &#128221; {{ projekt.status|upper }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="header-right">
+                    {% if projekt.qualitaet_bewertung %}
+                    <div class="qualitaet-mini">
+                        <span class="qualitaet-label">Qualität:</span>
+                        <span class="qualitaet-sterne">
+                            {% for i in range(1, 11) %}
+                                {% if i <= projekt.qualitaet_bewertung %}&#9733;{% else %}&#9734;{% endif %}
+                            {% endfor %}
+                        </span>
+                        <span class="qualitaet-zahl">{{ projekt.qualitaet_bewertung }}/10</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Aktuelle Phase Info -->
+            {% if aktuelle_phase %}
+            <div class="aktuelle-phase-box">
+                <div class="phase-info-header">
+                    <span class="phase-badge">Phase {{ aktuelle_phase.nummer }}</span>
+                    <h2 class="phase-titel">{{ aktuelle_phase.name }}</h2>
+                </div>
+                {% if aktuelle_phase.beschreibung %}
+                <p class="phase-beschreibung">{{ aktuelle_phase.beschreibung }}</p>
+                {% endif %}
+                {% if aktuelle_phase.auftraege %}
+                <div class="phase-fortschritt">
+                    <span class="fortschritt-text">Aufträge: {{ aktuelle_phase.auftraege|selectattr('status', 'equalto', 'fertig')|list|length }} / {{ aktuelle_phase.auftraege|length }}</span>
+                    <div class="fortschritt-bar">
+                        <div class="fortschritt-fill" style="width: {{ (aktuelle_phase.auftraege|selectattr('status', 'equalto', 'fertig')|list|length / aktuelle_phase.auftraege|length * 100)|int if aktuelle_phase.auftraege else 0 }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- CHAT-CONTAINER -->
+            <div class="chat-container" id="chatContainer">
+                <div class="chat-leer">
+                    <div class="chat-leer-icon">&#128172;</div>
+                    <h3>Willkommen im Steuerungsbereich</h3>
+                    <p>Nutze die Buttons unten, um Aufträge zu starten, Fehler zu melden oder das Projekt zu analysieren.</p>
+                    <div class="chat-tipps">
+                        <div class="tipp-item">
+                            <span class="tipp-icon">&#128196;</span>
+                            <span><strong>Auftrag:</strong> Nächsten Auftrag starten</span>
+                        </div>
+                        <div class="tipp-item">
+                            <span class="tipp-icon">&#128721;</span>
+                            <span><strong>Fehler:</strong> Problem melden</span>
+                        </div>
+                        <div class="tipp-item">
+                            <span class="tipp-icon">&#128269;</span>
+                            <span><strong>Analysieren:</strong> KI-Analyse starten</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Chat-Nachrichten werden hier dynamisch eingefügt -->
+            </div>
+
+            <!-- EINGABEBEREICH -->
+            <div class="eingabe-container">
+                <div class="eingabe-wrapper">
+                    <textarea
+                        id="userInput"
+                        class="eingabe-feld"
+                        placeholder="Schreibe hier eine Nachricht oder nutze die Buttons unten..."
+                        rows="2"
+                    ></textarea>
+                    <button class="eingabe-senden" id="sendBtn" title="Senden">
+                        <span>&#10148;</span>
+                    </button>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="action-buttons">
+                    <button class="action-btn btn-auftrag" id="btnAuftrag" data-action="auftrag">
+                        <span class="btn-icon">&#128196;</span>
+                        <span class="btn-text">Auftrag</span>
+                    </button>
+                    <button class="action-btn btn-fehler" id="btnFehler" data-action="fehler">
+                        <span class="btn-icon">&#128721;</span>
+                        <span class="btn-text">Fehler</span>
+                    </button>
+                    <button class="action-btn btn-analysieren" id="btnAnalysieren" data-action="analysieren">
+                        <span class="btn-icon">&#128269;</span>
+                        <span class="btn-text">Analysieren</span>
+                    </button>
+                    <button class="action-btn btn-uebergaben" id="btnUebergaben" data-action="uebergaben">
+                        <span class="btn-icon">&#128230;</span>
+                        <span class="btn-text">Übergaben</span>
+                    </button>
+                    <button class="action-btn btn-export" id="btnExport" data-action="export">
+                        <span class="btn-icon">&#128196;</span>
+                        <span class="btn-text">Export PDF</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/steuern.js') }}"></script>
+</body>
+</html>

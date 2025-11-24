@@ -23,7 +23,7 @@
 
                 <div class="projekt-liste-grid">
                     {% for projekt in projekte %}
-                    <a href="/projekt/{{ projekt.id }}" class="projekt-liste-card">
+                    <a href="/projekt/{{ projekt.id }}/steuern" class="projekt-liste-card">
                         <div class="projekt-card-header">
                             <h3>{{ projekt.name }}</h3>
                             <span class="projekt-status-badge projekt-status-{{ projekt.status }}">
@@ -79,7 +79,7 @@
         </main>
 
         <footer>
-            <p>NEXUS OVERLORD v2.0 - Phase 4 kommt bald!</p>
+            <p>NEXUS OVERLORD v2.0 - Projekt steuern</p>
         </footer>
     </div>
 </body>

@@ -602,6 +602,39 @@ def projekt_liste():
     return render_template('projekt_liste.html', projekte=projekte)
 
 
+@app.route('/projekt/<int:projekt_id>/steuern')
+def projekt_steuern(projekt_id):
+    """
+    Kachel 3: Projekt steuern - Hauptarbeitsbereich (Auftrag 4.1)
+    Layout mit Sidebar (Projekte + Phasen) und Chat-Bereich
+    """
+    from app.services.database import get_all_projekte, get_projekt_komplett
+
+    # Alle Projekte für Sidebar laden
+    projekte = get_all_projekte()
+
+    # Aktuelles Projekt mit Phasen und Aufträgen laden
+    projekt = get_projekt_komplett(projekt_id)
+
+    if not projekt:
+        flash('❌ Projekt nicht gefunden', 'error')
+        return redirect(url_for('projekt_liste'))
+
+    # Aktuelle Phase ermitteln (erste nicht-fertige Phase oder letzte)
+    aktuelle_phase = None
+    for phase in projekt.get('phasen', []):
+        if phase.get('status') != 'fertig':
+            aktuelle_phase = phase
+            break
+    if not aktuelle_phase and projekt.get('phasen'):
+        aktuelle_phase = projekt['phasen'][-1]
+
+    return render_template('projekt_steuern.html',
+                          projekt=projekt,
+                          projekte=projekte,
+                          aktuelle_phase=aktuelle_phase)
+
+
 if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5000))
