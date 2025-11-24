@@ -37,7 +37,7 @@ class OpenRouterClient:
         Call OpenRouter API with retry logic
 
         Args:
-            model: Model ID (e.g., 'anthropic/claude-sonnet-4.5')
+            model: Model ID (e.g., 'anthropic/claude-opus-4-5-20251101')
             messages: List of message dicts with 'role' and 'content'
             temperature: Sampling temperature (0-1)
             max_retries: Number of retry attempts
@@ -104,10 +104,17 @@ class OpenRouterClient:
         raise Exception(f"OpenRouter API call failed after {max_retries} attempts: {last_error}")
 
     def call_sonnet(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        model = os.getenv('SONNET_MODEL', 'anthropic/claude-sonnet-4.5')
+        """Calls Opus 4.5 (upgraded from Sonnet) - kept name for compatibility"""
+        model = os.getenv('OPUS_MODEL', 'anthropic/claude-opus-4-5-20251101')
+        return self.call(model, messages, **kwargs)
+
+    def call_opus(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        """Calls Opus 4.5 - the newest Claude model"""
+        model = os.getenv('OPUS_MODEL', 'anthropic/claude-opus-4-5-20251101')
         return self.call(model, messages, **kwargs)
 
     def call_gemini(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        """Calls Gemini 3 Pro"""
         model = os.getenv('GEMINI_MODEL', 'google/gemini-3-pro-preview')
         return self.call(model, messages, **kwargs)
 

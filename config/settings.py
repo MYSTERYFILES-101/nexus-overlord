@@ -16,9 +16,11 @@ OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 
 # KI Models (OpenRouter IDs)
 # Gemini 3 Pro - Stratege, Überblick, Prüfung
-GEMINI_MODEL = 'google/gemini-2.5-pro-preview-05-06'
-# Claude Sonnet 4.5 - Detailarbeiter, Aufträge, Code
-SONNET_MODEL = 'anthropic/claude-sonnet-4-5-20250514'
+GEMINI_MODEL = 'google/gemini-3-pro-preview'
+# Claude Opus 4.5 - Detailarbeiter, Aufträge, Code (Upgrade von Sonnet)
+OPUS_MODEL = 'anthropic/claude-opus-4-5-20251101'
+# Alias für Abwärtskompatibilität
+SONNET_MODEL = OPUS_MODEL
 
 # Server
 HOST = os.getenv('HOST', '0.0.0.0')

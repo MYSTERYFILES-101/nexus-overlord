@@ -10,10 +10,13 @@ from app.services.openrouter import call_openrouter
 # ========================================
 
 # Gemini 3 Pro - Stratege, Überblick, Prüfung
-MODEL_GEMINI = "google/gemini-2.5-pro-preview-05-06"
+MODEL_GEMINI = "google/gemini-3-pro-preview"
 
-# Claude Sonnet 4.5 - Detailarbeiter, Aufträge, Code
-MODEL_SONNET = "anthropic/claude-sonnet-4-5-20250514"
+# Claude Opus 4.5 - Detailarbeiter, Aufträge, Code (Upgrade von Sonnet)
+MODEL_OPUS = "anthropic/claude-opus-4-5-20251101"
+
+# Alias für Abwärtskompatibilität
+MODEL_SONNET = MODEL_OPUS
 
 
 # ========================================
