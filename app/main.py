@@ -82,15 +82,45 @@ def projekt_neu():
 
 def run_workflow_background(workflow_id, projektname, projektplan):
     """Run workflow in background thread"""
-    from app.services.multi_agent import MultiAgentWorkflow
+    import logging
+    import sys
+    import os
+
+    # CRITICAL: Set sys.path for this thread BEFORE importing
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
     try:
+        logger.info(f"Thread gestartet für Workflow {workflow_id}")
+        logger.info(f"Project root in sys.path: {project_root}")
+
+        # Import AFTER setting sys.path
+        from app.services.multi_agent import MultiAgentWorkflow
+
+        logger.info("MultiAgentWorkflow imported successfully")
+
         workflow = MultiAgentWorkflow()
         workflow_storage[workflow_id] = workflow
+
+        logger.info(f"Starte Workflow für: {projektname}")
         result = workflow.run(projektname, projektplan)
+
         workflow_storage[workflow_id] = workflow
+        logger.info("Workflow abgeschlossen!")
+
     except Exception as e:
-        if workflow_id in workflow_storage:
-            workflow_storage[workflow_id].status["error"] = str(e)
+        logger.error(f"Workflow Fehler: {e}", exc_info=True)
+        # Store error in a minimal status object
+        workflow_storage[workflow_id] = {
+            'status': 'error',
+            'error': str(e),
+            'current_step': 0,
+            'steps': []
+        }
 
 
 @app.route('/projekt/tracker')
