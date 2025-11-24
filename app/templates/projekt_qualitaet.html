@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qualitätsprüfung - NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✅ QUALITÄTSPRÜFUNG</h1>
+            <p>{{ projekt.name }}</p>
+        </header>
+
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="qualitaet-container">
+
+                <!-- Gesamt-Bewertung Box -->
+                <div class="qualitaet-gesamt-box">
+                    <div class="gesamt-bewertung">
+                        <div class="sterne-display-groß">
+                            {% for i in range(1, 11) %}
+                                {% if i <= qualitaet.gesamt_bewertung %}
+                                    <span class="stern-groß stern-filled">★</span>
+                                {% else %}
+                                    <span class="stern-groß stern-empty">☆</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="bewertung-zahl">{{ qualitaet.gesamt_bewertung }}/10</div>
+                    </div>
+                    <div class="gesamt-kommentar">
+                        {{ qualitaet.gesamt_kommentar }}
+                    </div>
+                </div>
+
+                <!-- Kategorien -->
+                <div class="kategorien-section">
+                    <h2>📊 Bewertung nach Kategorien</h2>
+                    <div class="kategorien-grid">
+                        {% for kat in qualitaet.kategorien %}
+                        <div class="kategorie-card {{ kat.color_class }}">
+                            <div class="kategorie-header">
+                                <span class="kategorie-icon">{{ kat.icon }}</span>
+                                <span class="kategorie-name">{{ kat.name }}</span>
+                                <span class="kategorie-bewertung">{{ kat.bewertung }}/10</span>
+                            </div>
+                            <div class="kategorie-kommentar">
+                                {{ kat.kommentar }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Verbesserungen (falls vorhanden) -->
+                {% if qualitaet.verbesserungen and qualitaet.verbesserungen|length > 0 %}
+                <div class="verbesserungen-section">
+                    <h2>💡 Verbesserungsvorschläge</h2>
+                    <div class="verbesserungen-liste">
+                        {% for verb in qualitaet.verbesserungen %}
+                        <div class="verbesserung-item verbesserung-{{ verb.typ }}">
+                            <div class="verbesserung-header">
+                                <span class="verbesserung-auftrag">Auftrag {{ verb.auftrag }}</span>
+                                <span class="verbesserung-typ-badge">{{ verb.typ }}</span>
+                            </div>
+                            <div class="verbesserung-text">
+                                {{ verb.text }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Warnungen (falls vorhanden) -->
+                {% if qualitaet.warnungen and qualitaet.warnungen|length > 0 %}
+                <div class="warnungen-section">
+                    <h2>⚠️ Warnungen</h2>
+                    <div class="warnungen-liste">
+                        {% for warnung in qualitaet.warnungen %}
+                        <div class="warnung-item">
+                            <div class="warnung-icon">⚠️</div>
+                            <div class="warnung-text">{{ warnung }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Fazit -->
+                <div class="fazit-box">
+                    <h3>🎯 Fazit</h3>
+                    <p>{{ qualitaet.fazit }}</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="qualitaet-actions">
+                    <a href="/projekt/{{ projekt.id }}/auftraege" class="btn btn-secondary">
+                        ← Zurück zu Aufträgen
+                    </a>
+                    <button class="btn btn-primary" onclick="alert('Auftrag 3.4 folgt: Speichern & Abschließen!')">
+                        ✅ Speichern & Abschließen
+                    </button>
+                </div>
+
+                <div class="next-step-info">
+                    <strong>🎯 Nächster Schritt:</strong>
+                    In Auftrag 3.4 werden alle Daten in der Datenbank gespeichert und Phase 3 abgeschlossen.
+                </div>
+
+            </div>
+
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Multi-Agent Intelligence</p>
+        </footer>
+    </div>
+</body>
+</html>

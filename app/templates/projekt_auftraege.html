@@ -174,15 +174,26 @@
                     <a href="/projekt/{{ projekt.id }}/phasen/ergebnis" class="btn btn-secondary">
                         ← Zurück zu Phasen
                     </a>
-                    <button class="btn btn-primary" onclick="alert('Auftrag 3.3 folgt: Gemini Qualitätsprüfung!')">
-                        ✅ Weiter zur Qualitätsprüfung
-                    </button>
+                    <form action="/projekt/{{ projekt.id }}/auftraege/pruefen" method="POST" style="display: inline;" id="qualitaetForm">
+                        <button type="submit" class="btn btn-primary" id="pruefenBtn">
+                            ✅ Weiter zur Qualitätsprüfung
+                        </button>
+                    </form>
                 </div>
 
                 <!-- Info -->
                 <div class="next-step-info">
                     <strong>🎯 Nächster Schritt:</strong>
-                    In Auftrag 3.3 wird Gemini 3 Pro die Aufträge prüfen und Verbesserungsvorschläge machen.
+                    Gemini 3 Pro wird die Aufträge prüfen und Verbesserungsvorschläge machen.
+                </div>
+
+                <!-- Loading Overlay (hidden by default) -->
+                <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Gemini 3 Pro prüft Qualität...</p>
+                        <p class="loading-subtext">Dies kann 30-90 Sekunden dauern</p>
+                    </div>
                 </div>
 
             </div>
@@ -194,6 +205,14 @@
         </footer>
     </div>
 
+    <script>
+        // Loading-Anzeige beim Submit
+        document.getElementById('qualitaetForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('pruefenBtn').disabled = true;
+        });
+
+    </script>
     <script>
         // Toggle Phase Section
         function togglePhase(phaseNr) {

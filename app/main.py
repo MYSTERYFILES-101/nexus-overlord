@@ -405,6 +405,63 @@ def auftraege_anzeigen(projekt_id):
                           phasen_namen=phasen_namen)
 
 
+@app.route('/projekt/<int:projekt_id>/auftraege/pruefen', methods=['POST'])
+def auftraege_pruefen(projekt_id):
+    """Prüft Aufträge mit Gemini 3 Pro (Auftrag 3.3)"""
+    from app.services.database import get_projekt
+    from app.services.qualitaetspruefung import pruefen_auftraege
+
+    projekt = get_projekt(projekt_id)
+    phasen_data = session.get('phasen_data')
+    auftraege_data = session.get('auftraege_data')
+
+    if not projekt:
+        flash('❌ Projekt nicht gefunden', 'error')
+        return redirect(url_for('index'))
+
+    if not phasen_data or not auftraege_data:
+        flash('❌ Erst Phasen und Aufträge generieren!', 'error')
+        return redirect(url_for('projekt_phasen_view', projekt_id=projekt_id))
+
+    try:
+        # Gemini aufrufen (kann lange dauern)
+        qualitaet_data = pruefen_auftraege(auftraege_data, phasen_data, projekt['enterprise_plan'])
+
+        # In Session speichern für Auftrag 3.4
+        session['qualitaet_data'] = qualitaet_data
+        session['projekt_id'] = projekt_id
+
+        flash('✅ Qualitätsprüfung abgeschlossen!', 'success')
+        return redirect(url_for('qualitaet_anzeigen', projekt_id=projekt_id))
+
+    except Exception as e:
+        flash(f'❌ Fehler bei Qualitätsprüfung: {str(e)}', 'error')
+        return redirect(url_for('auftraege_anzeigen', projekt_id=projekt_id))
+
+
+@app.route('/projekt/<int:projekt_id>/auftraege/qualitaet')
+def qualitaet_anzeigen(projekt_id):
+    """Zeigt Qualitäts-Bewertung an (Auftrag 3.3)"""
+    from app.services.database import get_projekt
+    from app.services.qualitaetspruefung import get_status_icon, get_status_color
+
+    projekt = get_projekt(projekt_id)
+    qualitaet_data = session.get('qualitaet_data')
+
+    if not qualitaet_data:
+        flash('❌ Keine Qualitätsprüfung gefunden. Bitte erst prüfen.', 'error')
+        return redirect(url_for('auftraege_anzeigen', projekt_id=projekt_id))
+
+    # Icons und Farben für Template hinzufügen
+    for kategorie in qualitaet_data['kategorien']:
+        kategorie['icon'] = get_status_icon(kategorie['status'])
+        kategorie['color_class'] = get_status_color(kategorie['status'])
+
+    return render_template('projekt_qualitaet.html',
+                          projekt=projekt,
+                          qualitaet=qualitaet_data)
+
+
 @app.route('/projekt/liste')
 def projekt_liste():
     """Kachel 3: Projekt öffnen und steuern (Phase 4)"""
