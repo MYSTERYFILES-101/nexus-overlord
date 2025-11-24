@@ -13,25 +13,68 @@
             <p>Projekte verwalten</p>
         </header>
 
-        <main class="platzhalter">
-            <div class="info-box">
-                <div class="info-icon">🚧</div>
-                <h2>Wird in Phase 4 implementiert</h2>
-                <p>Diese Funktion wird in <strong>Phase 4: Kachel 3 - Projekt steuern</strong> entwickelt.</p>
+        <main>
+            <div class="projekt-liste-container">
 
-                <div class="feature-preview">
-                    <h3>Was wird hier passieren:</h3>
-                    <ul>
-                        <li>🎯 Alle Projekte anzeigen</li>
-                        <li>🎯 Projekt auswählen und öffnen</li>
-                        <li>🎯 Phasen-Übersicht sehen</li>
-                        <li>🎯 5 Buttons: Auftrag, Fehler, Analysieren, Übergaben, Export</li>
-                        <li>🎯 Chat-System für Rückmeldungen</li>
-                        <li>🎯 Projekt-Fortschritt tracken</li>
-                    </ul>
+                {% if projekte %}
+                <div class="projekt-liste-header">
+                    <h2>Alle Projekte ({{ projekte|length }})</h2>
                 </div>
 
-                <a href="/" class="btn-back">← Zurück zur Startseite</a>
+                <div class="projekt-liste-grid">
+                    {% for projekt in projekte %}
+                    <a href="/projekt/{{ projekt.id }}" class="projekt-liste-card">
+                        <div class="projekt-card-header">
+                            <h3>{{ projekt.name }}</h3>
+                            <span class="projekt-status-badge projekt-status-{{ projekt.status }}">
+                                {% if projekt.status == 'bereit' %}
+                                    ✅ BEREIT
+                                {% elif projekt.status == 'in_arbeit' %}
+                                    🔄 IN ARBEIT
+                                {% elif projekt.status == 'fertig' %}
+                                    🎉 FERTIG
+                                {% else %}
+                                    📝 {{ projekt.status|upper }}
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        {% if projekt.qualitaet_bewertung %}
+                        <div class="projekt-card-qualitaet">
+                            <span class="qualitaet-label-small">Qualität:</span>
+                            <div class="sterne-display-small">
+                                {% for i in range(1, 11) %}
+                                    {% if i <= projekt.qualitaet_bewertung %}
+                                        <span class="stern-small">★</span>
+                                    {% else %}
+                                        <span class="stern-small stern-empty-small">☆</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="qualitaet-zahl-small">{{ projekt.qualitaet_bewertung }}/10</span>
+                        </div>
+                        {% endif %}
+
+                        <div class="projekt-card-meta">
+                            <span class="projekt-created">📅 {{ projekt.created_at[:10] }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+
+                {% else %}
+                <div class="no-data-box">
+                    <div class="no-data-icon">📂</div>
+                    <h3>Keine Projekte vorhanden</h3>
+                    <p>Erstellen Sie Ihr erstes Projekt über die Startseite.</p>
+                    <a href="/" class="btn btn-primary">Projekt erstellen</a>
+                </div>
+                {% endif %}
+
+                <div class="projekt-liste-actions">
+                    <a href="/" class="btn btn-secondary">← Zurück zur Startseite</a>
+                </div>
+
             </div>
         </main>
 

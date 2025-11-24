@@ -110,14 +110,25 @@
                     <a href="/projekt/{{ projekt.id }}/auftraege" class="btn btn-secondary">
                         ← Zurück zu Aufträgen
                     </a>
-                    <button class="btn btn-primary" onclick="alert('Auftrag 3.4 folgt: Speichern & Abschließen!')">
-                        ✅ Speichern & Abschließen
-                    </button>
+                    <form action="/projekt/{{ projekt.id }}/abschliessen" method="POST" style="display: inline;" id="abschliessenForm">
+                        <button type="submit" class="btn btn-primary" id="abschliessenBtn">
+                            ✅ Speichern & Abschließen
+                        </button>
+                    </form>
                 </div>
 
                 <div class="next-step-info">
                     <strong>🎯 Nächster Schritt:</strong>
-                    In Auftrag 3.4 werden alle Daten in der Datenbank gespeichert und Phase 3 abgeschlossen.
+                    Alle Daten werden in der Datenbank gespeichert. Projekt-Status wird auf "BEREIT" gesetzt.
+                </div>
+
+                <!-- Loading Overlay (hidden by default) -->
+                <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Speichere Projekt in Datenbank...</p>
+                        <p class="loading-subtext">Phasen, Aufträge, Qualität</p>
+                    </div>
                 </div>
 
             </div>
@@ -128,5 +139,13 @@
             <p>NEXUS OVERLORD v2.0 - Multi-Agent Intelligence</p>
         </footer>
     </div>
+
+    <script>
+        // Loading-Anzeige beim Submit
+        document.getElementById('abschliessenForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('abschliessenBtn').disabled = true;
+        });
+    </script>
 </body>
 </html>

@@ -462,10 +462,72 @@ def qualitaet_anzeigen(projekt_id):
                           qualitaet=qualitaet_data)
 
 
+@app.route('/projekt/<int:projekt_id>/abschliessen', methods=['POST'])
+def projekt_abschliessen(projekt_id):
+    """
+    Speichert alle generierten Daten in DB und schließt Phase 3 ab (Auftrag 3.4)
+    """
+    from app.services.database import save_phasen, save_auftraege, update_projekt_qualitaet
+
+    # Daten aus Session holen
+    phasen_data = session.get('phasen_data')
+    auftraege_data = session.get('auftraege_data')
+    qualitaet_data = session.get('qualitaet_data')
+
+    if not phasen_data or not auftraege_data or not qualitaet_data:
+        flash('❌ Nicht alle Daten vorhanden. Bitte Workflow komplett durchlaufen.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        # 1. Phasen speichern
+        phase_ids = save_phasen(projekt_id, phasen_data)
+
+        # 2. Aufträge pro Phase speichern
+        for phase_nr, phase_id in phase_ids:
+            phase_auftraege = [a for a in auftraege_data.get('auftraege', [])
+                              if a['phase_nummer'] == phase_nr]
+            if phase_auftraege:
+                save_auftraege(phase_id, phase_auftraege)
+
+        # 3. Qualität speichern und Status auf "bereit" setzen
+        update_projekt_qualitaet(projekt_id, qualitaet_data)
+
+        # 4. Session aufräumen
+        session.pop('phasen_data', None)
+        session.pop('auftraege_data', None)
+        session.pop('qualitaet_data', None)
+        session.pop('projekt_id', None)
+
+        flash('✅ Projekt erfolgreich gespeichert! Status: BEREIT', 'success')
+        return redirect(url_for('projekt_uebersicht', projekt_id=projekt_id))
+
+    except Exception as e:
+        flash(f'❌ Fehler beim Speichern: {str(e)}', 'error')
+        return redirect(url_for('qualitaet_anzeigen', projekt_id=projekt_id))
+
+
+@app.route('/projekt/<int:projekt_id>')
+def projekt_uebersicht(projekt_id):
+    """
+    Zeigt komplette Projekt-Übersicht mit allen Phasen und Aufträgen (Auftrag 3.4)
+    """
+    from app.services.database import get_projekt_komplett
+
+    projekt = get_projekt_komplett(projekt_id)
+
+    if not projekt:
+        flash('❌ Projekt nicht gefunden.', 'error')
+        return redirect(url_for('index'))
+
+    return render_template('projekt_uebersicht.html', projekt=projekt)
+
+
 @app.route('/projekt/liste')
 def projekt_liste():
     """Kachel 3: Projekt öffnen und steuern (Phase 4)"""
-    return render_template('projekt_liste.html')
+    from app.services.database import get_all_projekte
+    projekte = get_all_projekte()
+    return render_template('projekt_liste.html', projekte=projekte)
 
 
 if __name__ == '__main__':

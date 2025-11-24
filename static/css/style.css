@@ -2107,3 +2107,583 @@ footer {
         width: 100%;
     }
 }
+
+/* ========================================
+   PROJEKT-ÜBERSICHT STYLING (Auftrag 3.4)
+   ======================================== */
+
+.uebersicht-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Status & Qualität Header */
+.uebersicht-header-box {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.projekt-status {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.status-label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.status-badge {
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.status-erstellt {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.status-bereit {
+    background: #28a745;
+    color: white;
+}
+
+.status-in_arbeit {
+    background: #ffc107;
+    color: #333;
+}
+
+.status-fertig {
+    background: #17a2b8;
+    color: white;
+}
+
+.projekt-qualitaet-mini {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.qualitaet-label {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.sterne-display-mini {
+    display: flex;
+    gap: 4px;
+}
+
+.stern-mini {
+    font-size: 1.5rem;
+}
+
+.stern-mini.stern-filled {
+    color: #ffd700;
+}
+
+.stern-mini.stern-empty {
+    color: #e0e0e0;
+}
+
+.qualitaet-zahl {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #667eea;
+    background: #f0f4ff;
+    padding: 8px 15px;
+    border-radius: 15px;
+}
+
+/* Section Styling */
+.uebersicht-section {
+    background: white;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.uebersicht-section h2 {
+    padding: 25px 30px;
+    margin: 0;
+    color: #333;
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.section-header {
+    padding: 20px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.section-header:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #653a8a 100%);
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.section-icon {
+    font-size: 1.8rem;
+}
+
+.section-toggle {
+    font-size: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.section-content {
+    padding: 30px;
+}
+
+.plan-content {
+    background: #f9f9f9;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.plan-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* Phase Cards */
+.uebersicht-phase-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.uebersicht-phase-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+}
+
+.uebersicht-phase-header {
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.uebersicht-phase-header:hover {
+    background: linear-gradient(135deg, #5568d3 0%, #653a8a 100%);
+}
+
+.phase-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.phase-badge {
+    background: rgba(255, 255, 255, 0.3);
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.phase-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.phase-count {
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+.phase-meta {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.phase-status-badge {
+    padding: 6px 15px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.phase-status-offen {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.phase-status-in_arbeit {
+    background: #ffc107;
+    color: #333;
+}
+
+.phase-status-fertig {
+    background: #28a745;
+    color: white;
+}
+
+.phase-toggle-icon {
+    font-size: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.uebersicht-phase-content {
+    padding: 25px;
+    background: #f9f9f9;
+}
+
+.phase-beschreibung {
+    background: white;
+    border-left: 4px solid #667eea;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    color: #555;
+    line-height: 1.6;
+}
+
+/* Aufträge Liste */
+.auftraege-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.uebersicht-auftrag-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px 20px;
+    transition: all 0.3s ease;
+}
+
+.uebersicht-auftrag-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.auftrag-header-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.auftrag-info-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.auftrag-nummer-mini {
+    background: #667eea;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.auftrag-name-mini {
+    font-weight: 600;
+    color: #333;
+    font-size: 1.05rem;
+}
+
+.auftrag-status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.auftrag-status-offen {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.auftrag-status-in_arbeit {
+    background: #ffc107;
+    color: #333;
+}
+
+.auftrag-status-fertig {
+    background: #28a745;
+    color: white;
+}
+
+.auftrag-status-fehler {
+    background: #dc3545;
+    color: white;
+}
+
+.auftrag-beschreibung-mini {
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+/* Actions */
+.uebersicht-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+/* No Data Box */
+.no-data-box {
+    background: white;
+    border-radius: 15px;
+    padding: 60px 40px;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.no-data-box h3 {
+    color: #333;
+    font-size: 1.5rem;
+    margin: 15px 0 10px 0;
+}
+
+.no-data-box p {
+    color: #666;
+    font-size: 1.1rem;
+    margin-bottom: 25px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .uebersicht-header-box {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .phase-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .phase-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .uebersicht-actions {
+        flex-direction: column;
+    }
+
+    .uebersicht-actions .btn {
+        width: 100%;
+    }
+}
+
+/* ========================================
+   PROJEKT-LISTE STYLING (Auftrag 3.4)
+   ======================================== */
+
+.projekt-liste-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.projekt-liste-header {
+    margin-bottom: 30px;
+}
+
+.projekt-liste-header h2 {
+    color: #333;
+    font-size: 1.8rem;
+}
+
+.projekt-liste-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.projekt-liste-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.projekt-liste-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.2);
+    border: 2px solid #667eea;
+}
+
+.projekt-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.projekt-card-header h3 {
+    color: #333;
+    font-size: 1.4rem;
+    margin: 0;
+    flex: 1;
+}
+
+.projekt-status-badge {
+    padding: 6px 15px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.projekt-status-erstellt {
+    background: #e0e0e0;
+    color: #555;
+}
+
+.projekt-status-bereit {
+    background: #28a745;
+    color: white;
+}
+
+.projekt-status-in_arbeit {
+    background: #ffc107;
+    color: #333;
+}
+
+.projekt-status-fertig {
+    background: #17a2b8;
+    color: white;
+}
+
+.projekt-card-qualitaet {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #f0f4ff;
+    border-radius: 10px;
+}
+
+.qualitaet-label-small {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 600;
+}
+
+.sterne-display-small {
+    display: flex;
+    gap: 3px;
+}
+
+.stern-small {
+    font-size: 1.1rem;
+    color: #ffd700;
+}
+
+.stern-empty-small {
+    color: #e0e0e0;
+}
+
+.qualitaet-zahl-small {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-left: 5px;
+}
+
+.projekt-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.projekt-created {
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.projekt-liste-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.no-data-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .projekt-liste-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .projekt-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .projekt-status-badge {
+        align-self: flex-start;
+    }
+}

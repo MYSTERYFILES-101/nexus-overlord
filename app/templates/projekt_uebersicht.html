@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ projekt.name }} - NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 PROJEKT-ÜBERSICHT</h1>
+            <p>{{ projekt.name }}</p>
+        </header>
+
+        <main>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="uebersicht-container">
+
+                <!-- Status & Qualität Box -->
+                <div class="uebersicht-header-box">
+                    <div class="projekt-status">
+                        <div class="status-label">Status:</div>
+                        <div class="status-badge status-{{ projekt.status }}">
+                            {% if projekt.status == 'bereit' %}
+                                ✅ BEREIT
+                            {% elif projekt.status == 'in_arbeit' %}
+                                🔄 IN ARBEIT
+                            {% elif projekt.status == 'fertig' %}
+                                🎉 FERTIG
+                            {% else %}
+                                📝 {{ projekt.status|upper }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if projekt.qualitaet_bewertung %}
+                    <div class="projekt-qualitaet-mini">
+                        <div class="qualitaet-label">Qualität:</div>
+                        <div class="sterne-display-mini">
+                            {% for i in range(1, 11) %}
+                                {% if i <= projekt.qualitaet_bewertung %}
+                                    <span class="stern-mini stern-filled">★</span>
+                                {% else %}
+                                    <span class="stern-mini stern-empty">☆</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="qualitaet-zahl">{{ projekt.qualitaet_bewertung }}/10</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Enterprise-Plan (Collapsible) -->
+                <div class="uebersicht-section">
+                    <div class="section-header" onclick="toggleSection('enterprise-plan')">
+                        <div class="section-title">
+                            <span class="section-icon">📄</span>
+                            <span class="section-name">Enterprise-Plan</span>
+                        </div>
+                        <span class="section-toggle" id="toggle-enterprise-plan">▼</span>
+                    </div>
+                    <div class="section-content" id="enterprise-plan" style="display: none;">
+                        <div class="plan-content">
+                            <pre>{{ projekt.enterprise_plan }}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phasen & Aufträge -->
+                <div class="uebersicht-section">
+                    <h2>📊 Phasen & Aufträge</h2>
+
+                    {% if projekt.phasen %}
+                        {% for phase in projekt.phasen %}
+                        <div class="uebersicht-phase-card">
+                            <!-- Phase Header -->
+                            <div class="uebersicht-phase-header" onclick="togglePhase({{ phase.nummer }})">
+                                <div class="phase-info">
+                                    <span class="phase-badge">Phase {{ phase.nummer }}</span>
+                                    <span class="phase-name">{{ phase.name }}</span>
+                                    <span class="phase-count">{{ phase.auftraege|length }} Aufträge</span>
+                                </div>
+                                <div class="phase-meta">
+                                    <span class="phase-status-badge phase-status-{{ phase.status }}">
+                                        {% if phase.status == 'offen' %}○ Offen{% elif phase.status == 'in_arbeit' %}🔄 In Arbeit{% else %}✓ Fertig{% endif %}
+                                    </span>
+                                    <span class="phase-toggle-icon" id="toggle-phase-{{ phase.nummer }}">▼</span>
+                                </div>
+                            </div>
+
+                            <!-- Phase Content (Collapsible) -->
+                            <div class="uebersicht-phase-content" id="phase-{{ phase.nummer }}" style="display: none;">
+                                <!-- Phase Beschreibung -->
+                                {% if phase.beschreibung %}
+                                <div class="phase-beschreibung">
+                                    {{ phase.beschreibung }}
+                                </div>
+                                {% endif %}
+
+                                <!-- Aufträge Liste -->
+                                <div class="auftraege-liste">
+                                    {% for auftrag in phase.auftraege %}
+                                    <div class="uebersicht-auftrag-item">
+                                        <div class="auftrag-header-mini">
+                                            <div class="auftrag-info-mini">
+                                                <span class="auftrag-nummer-mini">{{ auftrag.nummer }}</span>
+                                                <span class="auftrag-name-mini">{{ auftrag.name }}</span>
+                                            </div>
+                                            <span class="auftrag-status-badge auftrag-status-{{ auftrag.status }}">
+                                                {% if auftrag.status == 'offen' %}
+                                                    ○ Offen
+                                                {% elif auftrag.status == 'in_arbeit' %}
+                                                    🔄 In Arbeit
+                                                {% elif auftrag.status == 'fertig' %}
+                                                    ✓ Fertig
+                                                {% else %}
+                                                    ⚠ {{ auftrag.status }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        {% if auftrag.beschreibung %}
+                                        <div class="auftrag-beschreibung-mini">
+                                            {{ auftrag.beschreibung }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-data-box">
+                            <p>Keine Phasen vorhanden. Workflow noch nicht abgeschlossen?</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Actions -->
+                <div class="uebersicht-actions">
+                    <a href="/" class="btn btn-secondary">
+                        ← Zurück zur Startseite
+                    </a>
+                    <a href="/projekt/liste" class="btn btn-secondary">
+                        📋 Alle Projekte
+                    </a>
+                    {% if projekt.status == 'bereit' %}
+                    <button class="btn btn-primary" onclick="alert('Phase 4: Projekt steuern - In Entwicklung')">
+                        🚀 Projekt starten
+                    </button>
+                    {% endif %}
+                </div>
+
+            </div>
+
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Multi-Agent Intelligence</p>
+        </footer>
+    </div>
+
+    <script>
+        // Toggle Enterprise Plan Section
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId);
+            const toggle = document.getElementById('toggle-' + sectionId);
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+
+        // Toggle Phase
+        function togglePhase(phaseNr) {
+            const content = document.getElementById('phase-' + phaseNr);
+            const toggle = document.getElementById('toggle-phase-' + phaseNr);
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Projekt-Übersicht geladen');
+        });
+    </script>
+</body>
+</html>
