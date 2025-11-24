@@ -215,6 +215,58 @@ def parse_bewertung_score(bewertung_text):
     return 5  # Default
 
 
+@app.route('/projekt/speichern', methods=['POST'])
+def projekt_speichern():
+    """Projekt in Datenbank speichern (Auftrag 2.5)"""
+    from app.services.database import save_projekt
+
+    workflow_id = session.get('workflow_id')
+
+    # Get data from workflow
+    if workflow_id and workflow_id in workflow_storage:
+        workflow = workflow_storage[workflow_id]
+        status = workflow.get_status()
+
+        enterprise_plan = status.get('final_plan', '')
+        bewertung = status.get('bewertung', '')
+    else:
+        # Fallback from session
+        enterprise_plan = session.get('enterprise_plan', '')
+        bewertung = session.get('bewertung', '')
+
+    # Get original data from session
+    projektname = session.get('projektname', 'Unbenanntes Projekt')
+    projektplan = session.get('projektplan', '')
+
+    # Save to database
+    try:
+        projekt_id = save_projekt(
+            name=projektname,
+            original_plan=projektplan,
+            enterprise_plan=enterprise_plan,
+            bewertung=bewertung
+        )
+
+        # Store projekt_id in session for next phases
+        session['projekt_id'] = projekt_id
+
+        # Clean up workflow from memory
+        if workflow_id and workflow_id in workflow_storage:
+            del workflow_storage[workflow_id]
+
+        # Clean up workflow_id from session (keep projekt data)
+        session.pop('workflow_id', None)
+
+        flash(f'✅ Projekt "{projektname}" erfolgreich gespeichert!', 'success')
+
+        # Redirect to Kachel 2: Phasen & Aufträge
+        return redirect(url_for('projekt_phasen'))
+
+    except Exception as e:
+        flash(f'❌ Fehler beim Speichern: {str(e)}', 'error')
+        return redirect(url_for('projekt_ergebnis'))
+
+
 @app.route('/projekt/phasen')
 def projekt_phasen():
     """Kachel 2: Phasen & Aufträge generieren (Phase 3)"""
