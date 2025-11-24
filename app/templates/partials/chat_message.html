@@ -1,0 +1,113 @@
+{#
+NEXUS OVERLORD v2.0 - Chat Message Partial (Auftrag 4.2)
+Wird per HTMX in den Chat-Container eingefügt
+#}
+
+{% if message_type == 'auftrag' %}
+<!-- Auftrag-Nachricht mit Kopieren-Button -->
+<div class="chat-message chat-auftrag" data-auftrag-id="{{ auftrag_id }}">
+    <div class="message-header">
+        <div class="message-info">
+            <span class="message-icon">&#128196;</span>
+            <span class="message-title">Auftrag: {{ auftrag_name }}</span>
+        </div>
+        <span class="message-time">{{ now().strftime('%H:%M') if now else '' }}</span>
+    </div>
+
+    <div class="message-content auftrag-content">
+        <pre class="auftrag-text" id="auftragText{{ auftrag_id }}">{{ content }}</pre>
+    </div>
+
+    <div class="message-actions">
+        <button class="action-btn-small btn-copy" onclick="copyAuftrag({{ auftrag_id }})" title="In Zwischenablage kopieren">
+            <span class="btn-icon">&#128203;</span>
+            <span class="btn-text">Kopieren</span>
+        </button>
+        <button class="action-btn-small btn-fertig" onclick="markAuftragFertig({{ auftrag_id }})" title="Als erledigt markieren">
+            <span class="btn-icon">&#10003;</span>
+            <span class="btn-text">Erledigt</span>
+        </button>
+    </div>
+
+    <div class="copy-feedback" id="copyFeedback{{ auftrag_id }}" style="display: none;">
+        &#10003; In Zwischenablage kopiert!
+    </div>
+</div>
+
+{% elif message_type == 'error' %}
+<!-- Fehler-Nachricht -->
+<div class="chat-message chat-error">
+    <div class="message-header">
+        <div class="message-info">
+            <span class="message-icon">&#9888;</span>
+            <span class="message-title">Fehler</span>
+        </div>
+    </div>
+    <div class="message-content">
+        {{ content }}
+    </div>
+</div>
+
+{% elif message_type == 'info' %}
+<!-- Info-Nachricht -->
+<div class="chat-message chat-info">
+    <div class="message-header">
+        <div class="message-info">
+            <span class="message-icon">&#9432;</span>
+            <span class="message-title">Information</span>
+        </div>
+    </div>
+    <div class="message-content">
+        <pre class="info-text">{{ content }}</pre>
+    </div>
+</div>
+
+{% elif message_type == 'success' %}
+<!-- Erfolgs-Nachricht -->
+<div class="chat-message chat-success">
+    <div class="message-header">
+        <div class="message-info">
+            <span class="message-icon">&#10003;</span>
+            <span class="message-title">Erfolg</span>
+        </div>
+    </div>
+    <div class="message-content">
+        {{ content }}
+    </div>
+</div>
+
+{% elif message_type == 'user' %}
+<!-- User-Nachricht -->
+<div class="chat-message chat-user">
+    <div class="message-header">
+        <span class="message-sender">Du</span>
+        <span class="message-time">{{ time if time else '' }}</span>
+    </div>
+    <div class="message-content">
+        {{ content }}
+    </div>
+</div>
+
+{% elif message_type == 'system' %}
+<!-- System-Nachricht -->
+<div class="chat-message chat-system">
+    <div class="message-header">
+        <div class="message-info">
+            <span class="message-icon">&#9670;</span>
+            <span class="message-title">NEXUS</span>
+        </div>
+        <span class="message-time">{{ time if time else '' }}</span>
+    </div>
+    <div class="message-content">
+        {{ content }}
+    </div>
+</div>
+
+{% else %}
+<!-- Standard-Nachricht -->
+<div class="chat-message">
+    <div class="message-content">
+        {{ content }}
+    </div>
+</div>
+{% endif %}

@@ -1,9 +1,19 @@
 /**
- * NEXUS OVERLORD v2.0 - Steuern JavaScript (Auftrag 4.1)
+ * NEXUS OVERLORD v2.0 - Steuern JavaScript (Auftrag 4.1 + 4.2)
  * Interaktionen für Kachel 3: Projekt steuern
  */
 
+// Globale Variable für Projekt-ID (wird aus URL extrahiert)
+let projektId = null;
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Projekt-ID aus URL extrahieren
+    const pathParts = window.location.pathname.split('/');
+    const projektIndex = pathParts.indexOf('projekt');
+    if (projektIndex !== -1 && pathParts[projektIndex + 1]) {
+        projektId = parseInt(pathParts[projektIndex + 1]);
+    }
+
     // DOM Elements
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
@@ -86,15 +96,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const message = userInput.value.trim();
         if (!message) return;
 
-        // Nachricht zum Chat hinzufügen (Platzhalter - Funktion kommt später)
+        // Nachricht zum Chat hinzufügen
         addChatMessage('user', message);
         userInput.value = '';
         userInput.style.height = 'auto';
 
-        // TODO: Auftrag 4.2+ - API-Aufruf für Nachricht
-        console.log('Nachricht gesendet:', message);
-
-        // Platzhalter-Antwort
+        // Platzhalter-Antwort (wird in späteren Aufträgen erweitert)
         setTimeout(function() {
             addChatMessage('system', 'Diese Funktion wird in einem späteren Auftrag implementiert. Nutze die Buttons unten für spezifische Aktionen.');
         }, 500);
@@ -102,10 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function addChatMessage(type, content) {
         // Leere Chat-Anzeige entfernen
-        const chatLeer = chatContainer.querySelector('.chat-leer');
-        if (chatLeer) {
-            chatLeer.remove();
-        }
+        clearChatEmpty();
 
         const messageDiv = document.createElement('div');
         messageDiv.className = 'chat-message chat-' + type;
@@ -127,6 +131,13 @@ document.addEventListener('DOMContentLoaded', function() {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    function clearChatEmpty() {
+        const chatLeer = chatContainer.querySelector('.chat-leer');
+        if (chatLeer) {
+            chatLeer.remove();
+        }
+    }
+
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -134,15 +145,58 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
-    // ACTION BUTTONS (Platzhalter)
+    // AUFTRAG BUTTON (Auftrag 4.2)
     // ========================================
 
-    // Auftrag Button
     if (btnAuftrag) {
         btnAuftrag.addEventListener('click', function() {
-            showActionInfo('Auftrag', 'Nächsten Auftrag starten - Diese Funktion wird in Auftrag 4.2 implementiert.');
+            loadNextAuftrag();
         });
     }
+
+    function loadNextAuftrag() {
+        if (!projektId) {
+            addChatMessage('system', 'Fehler: Projekt-ID nicht gefunden.');
+            return;
+        }
+
+        // Button deaktivieren während des Ladens
+        btnAuftrag.disabled = true;
+        btnAuftrag.innerHTML = '<span class="btn-icon">&#8987;</span><span class="btn-text">Lädt...</span>';
+
+        // Leere Chat-Anzeige entfernen
+        clearChatEmpty();
+
+        // API-Aufruf
+        fetch(`/projekt/${projektId}/auftrag`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // HTML in Chat-Container einfügen
+            chatContainer.insertAdjacentHTML('beforeend', html);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Button wieder aktivieren
+            btnAuftrag.disabled = false;
+            btnAuftrag.innerHTML = '<span class="btn-icon">&#128196;</span><span class="btn-text">Auftrag</span>';
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden des Auftrags:', error);
+            addChatMessage('system', 'Fehler beim Laden des Auftrags. Bitte versuche es erneut.');
+
+            // Button wieder aktivieren
+            btnAuftrag.disabled = false;
+            btnAuftrag.innerHTML = '<span class="btn-icon">&#128196;</span><span class="btn-text">Auftrag</span>';
+        });
+    }
+
+    // ========================================
+    // ACTION BUTTONS (Platzhalter für 4.3+)
+    // ========================================
 
     // Fehler Button
     if (btnFehler) {
@@ -173,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showActionInfo(action, message) {
+        clearChatEmpty();
         addChatMessage('system', `[${action}] ${message}`);
     }
 
@@ -194,7 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // TODO: Phase laden und anzeigen
             console.log('Phase ausgewählt:', phaseId);
-            addChatMessage('system', 'Phase ' + this.querySelector('.phase-nummer').textContent + ' ausgewählt. Die Phasen-Details werden in einem späteren Auftrag geladen.');
 
             // Mobile: Sidebar schließen
             if (window.innerWidth <= 1024) {
@@ -217,70 +271,115 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 250);
     });
 
-    // ========================================
-    // CHAT MESSAGE STYLING (für spätere Nutzung)
-    // ========================================
-
-    // CSS für Chat-Nachrichten dynamisch hinzufügen
-    const chatStyles = document.createElement('style');
-    chatStyles.textContent = `
-        .chat-message {
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 12px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .chat-user {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            margin-left: 50px;
-        }
-
-        .chat-system {
-            background: #f5f7fa;
-            color: #333;
-            margin-right: 50px;
-            border-left: 4px solid #667eea;
-        }
-
-        .message-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
-        }
-
-        .chat-user .message-header {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .chat-system .message-header {
-            color: #999;
-        }
-
-        .message-sender {
-            font-weight: bold;
-        }
-
-        .message-content {
-            line-height: 1.5;
-            white-space: pre-wrap;
-        }
-
-        @media (max-width: 768px) {
-            .chat-user, .chat-system {
-                margin-left: 0;
-                margin-right: 0;
-            }
-        }
-    `;
-    document.head.appendChild(chatStyles);
-
-    console.log('NEXUS OVERLORD - Steuern-Modul geladen');
+    console.log('NEXUS OVERLORD - Steuern-Modul geladen (v4.2)');
 });
+
+// ========================================
+// GLOBALE FUNKTIONEN (für onclick in HTML)
+// ========================================
+
+/**
+ * Kopiert Auftrag-Text in die Zwischenablage (Auftrag 4.2)
+ */
+function copyAuftrag(auftragId) {
+    const textElement = document.getElementById('auftragText' + auftragId);
+    const feedbackElement = document.getElementById('copyFeedback' + auftragId);
+
+    if (!textElement) {
+        console.error('Auftrag-Text nicht gefunden:', auftragId);
+        return;
+    }
+
+    const text = textElement.textContent;
+
+    // Moderne Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showCopyFeedback(feedbackElement);
+            })
+            .catch(err => {
+                console.error('Clipboard-Fehler:', err);
+                fallbackCopy(text, feedbackElement);
+            });
+    } else {
+        // Fallback für ältere Browser
+        fallbackCopy(text, feedbackElement);
+    }
+}
+
+/**
+ * Fallback-Kopieren für ältere Browser
+ */
+function fallbackCopy(text, feedbackElement) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+        document.execCommand('copy');
+        showCopyFeedback(feedbackElement);
+    } catch (err) {
+        console.error('Fallback-Copy-Fehler:', err);
+        alert('Kopieren fehlgeschlagen. Bitte manuell kopieren.');
+    }
+
+    document.body.removeChild(textarea);
+}
+
+/**
+ * Zeigt Kopieren-Feedback an
+ */
+function showCopyFeedback(feedbackElement) {
+    if (feedbackElement) {
+        feedbackElement.style.display = 'block';
+        setTimeout(() => {
+            feedbackElement.style.display = 'none';
+        }, 2000);
+    }
+}
+
+/**
+ * Markiert Auftrag als erledigt (Auftrag 4.2)
+ */
+function markAuftragFertig(auftragId) {
+    // Projekt-ID aus URL extrahieren
+    const pathParts = window.location.pathname.split('/');
+    const projektIndex = pathParts.indexOf('projekt');
+    const projektId = pathParts[projektIndex + 1];
+
+    fetch(`/projekt/${projektId}/auftrag/${auftragId}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'status=fertig'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Visuelles Feedback
+            const messageElement = document.querySelector(`[data-auftrag-id="${auftragId}"]`);
+            if (messageElement) {
+                messageElement.classList.add('auftrag-erledigt');
+
+                // Button ändern
+                const fertigBtn = messageElement.querySelector('.btn-fertig');
+                if (fertigBtn) {
+                    fertigBtn.innerHTML = '<span class="btn-icon">&#10003;</span><span class="btn-text">Erledigt!</span>';
+                    fertigBtn.disabled = true;
+                    fertigBtn.classList.add('btn-success');
+                }
+            }
+        } else {
+            alert('Fehler: ' + (data.error || 'Unbekannter Fehler'));
+        }
+    })
+    .catch(error => {
+        console.error('Fehler beim Status-Update:', error);
+        alert('Fehler beim Aktualisieren des Status.');
+    });
+}

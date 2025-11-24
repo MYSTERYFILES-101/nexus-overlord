@@ -232,3 +232,113 @@ def get_projekt_komplett(projekt_id: int) -> dict:
     projekt['phasen'] = phasen
     conn.close()
     return projekt
+
+
+def get_next_open_auftrag(projekt_id: int) -> dict:
+    """
+    Find the next open task for a project (Auftrag 4.2)
+
+    Args:
+        projekt_id: Project ID
+
+    Returns:
+        dict: Next open task with phase info, or None if no open tasks
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT a.*, p.name as phase_name, p.nummer as phase_nummer,
+               (SELECT COUNT(*) FROM phasen WHERE projekt_id = ?) as total_phasen
+        FROM auftraege a
+        JOIN phasen p ON a.phase_id = p.id
+        WHERE p.projekt_id = ?
+        AND a.status = 'offen'
+        ORDER BY p.nummer, a.nummer
+        LIMIT 1
+    """, (projekt_id, projekt_id))
+
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    auftrag = dict(row)
+
+    # Parse JSON fields
+    for field in ['schritte', 'dateien', 'technische_details', 'erfolgs_kriterien', 'regelwerk']:
+        if auftrag.get(field):
+            try:
+                auftrag[field] = json.loads(auftrag[field])
+            except:
+                auftrag[field] = [] if field != 'regelwerk' else {}
+
+    return auftrag
+
+
+def update_auftrag_status(auftrag_id: int, status: str) -> bool:
+    """
+    Update task status (Auftrag 4.2)
+
+    Args:
+        auftrag_id: Task ID
+        status: New status ('offen', 'in_arbeit', 'fertig', 'fehler')
+
+    Returns:
+        bool: True if successful
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE auftraege
+        SET status = ?, updated_at = datetime('now')
+        WHERE id = ?
+    """, (status, auftrag_id))
+
+    affected = cursor.rowcount
+    conn.commit()
+    conn.close()
+
+    return affected > 0
+
+
+def get_projekt_stats(projekt_id: int) -> dict:
+    """
+    Get project statistics (Auftrag 4.2)
+
+    Returns:
+        dict: Statistics about phases and tasks
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Count phases
+    cursor.execute("SELECT COUNT(*) FROM phasen WHERE projekt_id = ?", (projekt_id,))
+    total_phasen = cursor.fetchone()[0]
+
+    # Count tasks by status
+    cursor.execute("""
+        SELECT a.status, COUNT(*) as count
+        FROM auftraege a
+        JOIN phasen p ON a.phase_id = p.id
+        WHERE p.projekt_id = ?
+        GROUP BY a.status
+    """, (projekt_id,))
+
+    stats = {
+        'total_phasen': total_phasen,
+        'total_auftraege': 0,
+        'offen': 0,
+        'in_arbeit': 0,
+        'fertig': 0,
+        'fehler': 0
+    }
+
+    for row in cursor.fetchall():
+        stats[row['status']] = row['count']
+        stats['total_auftraege'] += row['count']
+
+    conn.close()
+    return stats

@@ -635,6 +635,65 @@ def projekt_steuern(projekt_id):
                           aktuelle_phase=aktuelle_phase)
 
 
+@app.route('/projekt/<int:projekt_id>/auftrag', methods=['POST'])
+def projekt_auftrag(projekt_id):
+    """
+    Holt nächsten offenen Auftrag und formatiert ihn für Claude Code (Auftrag 4.2)
+    Wird per HTMX aufgerufen, gibt HTML für Chat-Container zurück
+    """
+    from app.services.database import get_projekt, get_next_open_auftrag, update_auftrag_status
+    from app.services.auftrag_formatierer import format_auftrag_for_claude, get_no_auftraege_message
+
+    # Projekt laden
+    projekt = get_projekt(projekt_id)
+    if not projekt:
+        return render_template('partials/chat_message.html',
+                             message_type='error',
+                             content='Projekt nicht gefunden.')
+
+    # Nächsten offenen Auftrag finden
+    auftrag = get_next_open_auftrag(projekt_id)
+
+    if not auftrag:
+        # Keine offenen Aufträge
+        return render_template('partials/chat_message.html',
+                             message_type='info',
+                             content=get_no_auftraege_message())
+
+    # Auftrag formatieren (ohne AI für Schnelligkeit, AI kann später aktiviert werden)
+    formatted_auftrag = format_auftrag_for_claude(auftrag, projekt)
+
+    # Status auf "in_arbeit" setzen
+    update_auftrag_status(auftrag['id'], 'in_arbeit')
+
+    # Als Chat-Nachricht zurückgeben
+    return render_template('partials/chat_message.html',
+                         message_type='auftrag',
+                         auftrag_name=f"{auftrag.get('phase_nummer', 1)}.{auftrag.get('nummer', 1)} - {auftrag.get('name', 'Auftrag')}",
+                         content=formatted_auftrag,
+                         auftrag_id=auftrag['id'])
+
+
+@app.route('/projekt/<int:projekt_id>/auftrag/<int:auftrag_id>/status', methods=['POST'])
+def auftrag_status_update(projekt_id, auftrag_id):
+    """
+    Aktualisiert den Status eines Auftrags (Auftrag 4.2)
+    """
+    from app.services.database import update_auftrag_status
+
+    status = request.form.get('status', 'fertig')
+
+    if status not in ['offen', 'in_arbeit', 'fertig', 'fehler']:
+        return jsonify({'success': False, 'error': 'Ungültiger Status'}), 400
+
+    success = update_auftrag_status(auftrag_id, status)
+
+    if success:
+        return jsonify({'success': True, 'status': status})
+    else:
+        return jsonify({'success': False, 'error': 'Auftrag nicht gefunden'}), 404
+
+
 if __name__ == '__main__':
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5000))
