@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phasen Ergebnis - NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✅ PHASEN ERFOLGREICH GENERIERT</h1>
+            <p>{{ projekt.name }}</p>
+        </header>
+
+        <main>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="phasen-ergebnis-container">
+
+                <!-- Übersicht Box -->
+                <div class="phasen-overview-box">
+                    <div class="overview-stat">
+                        <span class="stat-number">{{ phasen_data.gesamt_phasen }}</span>
+                        <span class="stat-label">Phasen</span>
+                    </div>
+                    <div class="overview-stat">
+                        <span class="stat-number">{{ phasen_data.gesamt_dauer }}</span>
+                        <span class="stat-label">Geschätzte Dauer</span>
+                    </div>
+                </div>
+
+                <!-- Strategische Hinweise (falls vorhanden) -->
+                {% if phasen_data.hinweise %}
+                <div class="hinweise-box">
+                    <div class="hinweise-icon">💡</div>
+                    <div class="hinweise-content">
+                        <strong>Strategische Hinweise:</strong>
+                        <p>{{ phasen_data.hinweise }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Phasen-Liste -->
+                <div class="phasen-liste-section">
+                    <h2>📋 Phasen-Übersicht</h2>
+
+                    {% for phase in phasen_data.phasen %}
+                    <div class="phase-card priority-{{ phase.prioritaet }}">
+                        <div class="phase-header">
+                            <span class="phase-nummer">#{{ phase.nummer }}</span>
+                            <h3 class="phase-name">{{ phase.name }}</h3>
+                            <span class="phase-priority-badge priority-badge-{{ phase.prioritaet }}">
+                                {% if phase.prioritaet == 'hoch' %}
+                                    🔴 HOCH
+                                {% elif phase.prioritaet == 'mittel' %}
+                                    🟡 MITTEL
+                                {% else %}
+                                    🟢 NIEDRIG
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="phase-body">
+                            <p class="phase-beschreibung">{{ phase.beschreibung }}</p>
+
+                            <div class="phase-meta">
+                                <div class="phase-meta-item">
+                                    <span class="meta-icon">⏱️</span>
+                                    <span class="meta-text">{{ phase.geschaetzte_dauer }}</span>
+                                </div>
+
+                                {% if phase.abhaengigkeiten %}
+                                <div class="phase-meta-item">
+                                    <span class="meta-icon">🔗</span>
+                                    <span class="meta-text">
+                                        Abhängigkeiten: 
+                                        {% for dep in phase.abhaengigkeiten %}
+                                            Phase {{ dep }}{% if not loop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </div>
+                                {% else %}
+                                <div class="phase-meta-item">
+                                    <span class="meta-icon">✓</span>
+                                    <span class="meta-text">Keine Abhängigkeiten</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <!-- Actions -->
+                <div class="phasen-ergebnis-actions">
+                    <a href="/projekt/{{ projekt.id }}/phasen" class="btn btn-secondary">
+                        ↩ Nochmal generieren
+                    </a>
+                    <button class="btn btn-primary" onclick="alert('Auftrag 3.2 folgt: Sonnet erstellt Aufträge!')">
+                        ✅ Weiter zu Aufträgen
+                    </button>
+                </div>
+
+                <!-- Info -->
+                <div class="next-step-info">
+                    <strong>🎯 Nächster Schritt:</strong>
+                    In Auftrag 3.2 wird Sonnet 4.5 für jede Phase konkrete Aufträge mit Regelwerk erstellen.
+                </div>
+
+            </div>
+
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Multi-Agent Intelligence</p>
+        </footer>
+    </div>
+</body>
+</html>

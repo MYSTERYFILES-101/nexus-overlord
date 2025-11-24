@@ -259,18 +259,83 @@ def projekt_speichern():
 
         flash(f'✅ Projekt "{projektname}" erfolgreich gespeichert!', 'success')
 
-        # Redirect to Kachel 2: Phasen & Aufträge
-        return redirect(url_for('projekt_phasen'))
+        # Redirect to Kachel 2: Phasen & Aufträge (with projekt_id)
+        return redirect(url_for('projekt_phasen_view', projekt_id=projekt_id))
 
     except Exception as e:
         flash(f'❌ Fehler beim Speichern: {str(e)}', 'error')
         return redirect(url_for('projekt_ergebnis'))
 
 
+@app.route('/projekt/<int:projekt_id>/phasen', methods=['GET', 'POST'])
+def projekt_phasen_view(projekt_id):
+    """Kachel 2: Phasen & Aufträge generieren (Phase 3)"""
+    from app.services.database import get_projekt
+    from app.services.phasen_generator import generate_phasen
+    import threading
+
+    # Projekt aus Datenbank laden
+    projekt = get_projekt(projekt_id)
+
+    if not projekt:
+        flash('❌ Projekt nicht gefunden', 'error')
+        return redirect(url_for('index'))
+
+    # POST: Phasen generieren starten
+    if request.method == 'POST':
+        enterprise_plan = projekt['enterprise_plan']
+
+        try:
+            # Gemini aufrufen (könnte lange dauern)
+            phasen_data = generate_phasen(enterprise_plan)
+
+            # In Session speichern für Auftrag 3.2
+            session['phasen_data'] = phasen_data
+            session['projekt_id'] = projekt_id
+
+            flash('✅ Phasen erfolgreich generiert!', 'success')
+            return redirect(url_for('projekt_phasen_ergebnis', projekt_id=projekt_id))
+
+        except Exception as e:
+            flash(f'❌ Fehler bei Phasen-Generierung: {str(e)}', 'error')
+            return redirect(url_for('projekt_phasen_view', projekt_id=projekt_id))
+
+    # GET: Formular anzeigen
+    return render_template('projekt_phasen.html', projekt=projekt)
+
+
+@app.route('/projekt/<int:projekt_id>/phasen/ergebnis')
+def projekt_phasen_ergebnis(projekt_id):
+    """Zeigt generierte Phasen an (Auftrag 3.1)"""
+    from app.services.database import get_projekt
+    from app.services.phasen_generator import format_phasen_for_display
+
+    projekt = get_projekt(projekt_id)
+    phasen_data = session.get('phasen_data')
+
+    if not phasen_data:
+        flash('❌ Keine Phasen gefunden. Bitte erst generieren.', 'error')
+        return redirect(url_for('projekt_phasen_view', projekt_id=projekt_id))
+
+    # Formatiere für Anzeige
+    phasen_markdown = format_phasen_for_display(phasen_data)
+    phasen_html = markdown2.markdown(phasen_markdown, extras=['fenced-code-blocks', 'tables'])
+
+    return render_template('projekt_phasen_ergebnis.html',
+                          projekt=projekt,
+                          phasen_data=phasen_data,
+                          phasen_html=phasen_html)
+
+
 @app.route('/projekt/phasen')
 def projekt_phasen():
-    """Kachel 2: Phasen & Aufträge generieren (Phase 3)"""
-    return render_template('projekt_phasen.html')
+    """Legacy route - redirect to projekt with ID from session"""
+    projekt_id = session.get('projekt_id')
+    if projekt_id:
+        return redirect(url_for('projekt_phasen_view', projekt_id=projekt_id))
+    else:
+        flash('❌ Kein aktives Projekt gefunden', 'error')
+        return redirect(url_for('index'))
 
 
 @app.route('/projekt/liste')

@@ -3,41 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phasen & Aufträge - NEXUS OVERLORD</title>
+    <title>Phasen generieren - NEXUS OVERLORD</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📋 PHASEN & AUFTRÄGE</h1>
-            <p>Aufträge generieren</p>
+            <h1>🔷 PHASEN & AUFTRÄGE GENERIEREN</h1>
+            <p>{{ projekt.name }}</p>
         </header>
 
-        <main class="platzhalter">
-            <div class="info-box">
-                <div class="info-icon">🚧</div>
-                <h2>Wird in Phase 3 implementiert</h2>
-                <p>Diese Funktion wird in <strong>Phase 3: Kachel 2 - Phasen & Aufträge</strong> entwickelt.</p>
+        <main>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-                <div class="feature-preview">
-                    <h3>Was wird hier passieren:</h3>
-                    <ul>
-                        <li>📊 Gemini analysiert Enterprise-Plan</li>
-                        <li>📊 Teilt Plan in logische Phasen auf</li>
-                        <li>📊 Sonnet erstellt detaillierte Aufträge</li>
-                        <li>📊 Regelwerk für Claude Code generieren</li>
-                        <li>📊 Gemini prüft Vollständigkeit</li>
-                        <li>📊 Auftragsliste bereit zum Abarbeiten</li>
-                    </ul>
+            <div class="phasen-generator-container">
+
+                <!-- Enterprise-Plan Anzeige -->
+                <div class="phasen-section">
+                    <div class="phasen-header">
+                        <h2>📋 Dein Enterprise-Plan</h2>
+                    </div>
+                    <div class="enterprise-plan-box">
+                        <pre class="enterprise-plan-text">{{ projekt.enterprise_plan }}</pre>
+                    </div>
                 </div>
 
-                <a href="/" class="btn-back">← Zurück zur Startseite</a>
+                <!-- Info-Box -->
+                <div class="info-box-phasen">
+                    <div class="info-icon-small">💡</div>
+                    <div class="info-text-small">
+                        <strong>Was passiert jetzt?</strong>
+                        Gemini 3 Pro analysiert deinen Enterprise-Plan und teilt ihn in 5-8 logische Phasen ein.
+                        Dabei werden Abhängigkeiten erkannt und Prioritäten gesetzt.
+                    </div>
+                </div>
+
+                <!-- Phasen generieren Button -->
+                <form method="POST" id="phasenForm">
+                    <div class="phasen-actions">
+                        <a href="/" class="btn btn-secondary">
+                            ← Zurück zur Startseite
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="generateBtn">
+                            🔄 Phasen generieren
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Loading Overlay (hidden by default) -->
+                <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Gemini 3 Pro analysiert deinen Plan...</p>
+                        <p class="loading-subtext">Dies kann 30-60 Sekunden dauern</p>
+                    </div>
+                </div>
+
             </div>
+
         </main>
 
         <footer>
-            <p>NEXUS OVERLORD v2.0 - Phase 3 kommt bald!</p>
+            <p>NEXUS OVERLORD v2.0 - Multi-Agent Intelligence</p>
         </footer>
     </div>
+
+    <script>
+        // Loading-Anzeige beim Submit
+        document.getElementById('phasenForm').addEventListener('submit', function() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('generateBtn').disabled = true;
+        });
+    </script>
 </body>
 </html>
