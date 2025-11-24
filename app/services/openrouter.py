@@ -1,102 +1,121 @@
 """
-NEXUS OVERLORD v2.0 - OpenRouter API Integration
-Basis-Funktion für alle OpenRouter API Calls
+NEXUS OVERLORD v2.0 - OpenRouter API Client
+Handles API calls to OpenRouter for Multi-Agent Workflow
 """
 
-import os
 import requests
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# OpenRouter Configuration
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+import os
+from typing import List, Dict, Optional
+import time
 
 
-def call_openrouter(model: str, messages: list, max_tokens: int = 4000, temperature: float = 0.7):
-    """
-    Basis-Funktion für OpenRouter API Calls
+class OpenRouterClient:
+    """Client for OpenRouter API"""
 
-    Args:
-        model (str): OpenRouter Model-ID
-        messages (list): Liste von Message-Dicts mit role und content
-        max_tokens (int): Maximale Anzahl an Tokens in der Antwort
-        temperature (float): Kreativität (0.0 - 1.0)
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initialize OpenRouter client
 
-    Returns:
-        str: Antwort des KI-Models
+        Args:
+            api_key: OpenRouter API key (defaults to env variable)
+        """
+        self.api_key = api_key or os.getenv('OPENROUTER_API_KEY')
+        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
 
-    Raises:
-        ValueError: Wenn API Key fehlt
-        requests.HTTPError: Bei API-Fehlern
-    """
+        if not self.api_key:
+            raise ValueError("OpenRouter API key not found in environment")
 
-    # Validate API Key
-    if not OPENROUTER_API_KEY:
-        raise ValueError(
-            "OPENROUTER_API_KEY not found in environment variables. "
-            "Please set it in your .env file."
-        )
+    def call(
+        self,
+        model: str,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_retries: int = 3,
+        timeout: int = 60
+    ) -> str:
+        """
+        Call OpenRouter API with retry logic
 
-    # Headers
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://nexus-overlord.ai",  # Optional
-        "X-Title": "NEXUS OVERLORD v2.0"  # Optional
-    }
+        Args:
+            model: Model ID (e.g., 'anthropic/claude-sonnet-4.5')
+            messages: List of message dicts with 'role' and 'content'
+            temperature: Sampling temperature (0-1)
+            max_retries: Number of retry attempts
+            timeout: Request timeout in seconds
 
-    # Payload
-    payload = {
-        "model": model,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": temperature
-    }
+        Returns:
+            str: Response content from the model
 
-    try:
-        # API Call
-        response = requests.post(OPENROUTER_URL, headers=headers, json=payload, timeout=60)
-        response.raise_for_status()
+        Raises:
+            Exception: If all retries fail
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://nexus-overlord.com",
+            "X-Title": "NEXUS OVERLORD v2.0"
+        }
 
-        # Extract response
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature
+        }
 
-    except requests.exceptions.HTTPError as e:
-        # HTTP Error (4xx, 5xx)
-        error_msg = f"OpenRouter API Error: {e.response.status_code}"
-        if e.response.text:
-            error_msg += f" - {e.response.text}"
-        raise requests.HTTPError(error_msg)
+        last_error = None
 
-    except requests.exceptions.Timeout:
-        raise TimeoutError("OpenRouter API request timed out after 60 seconds")
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    self.base_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout
+                )
 
-    except requests.exceptions.RequestException as e:
-        raise ConnectionError(f"OpenRouter API connection error: {str(e)}")
+                response.raise_for_status()
 
-    except (KeyError, IndexError) as e:
-        raise ValueError(f"Unexpected API response format: {str(e)}")
+                data = response.json()
+
+                if "choices" in data and len(data["choices"]) > 0:
+                    content = data["choices"][0]["message"]["content"]
+                    return content
+                else:
+                    raise ValueError("Unexpected response format from OpenRouter")
+
+            except requests.exceptions.Timeout as e:
+                last_error = f"Timeout after {timeout}s: {str(e)}"
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+
+            except requests.exceptions.RequestException as e:
+                last_error = f"Request failed: {str(e)}"
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+
+            except (ValueError, KeyError) as e:
+                last_error = f"Response parsing failed: {str(e)}"
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+
+        raise Exception(f"OpenRouter API call failed after {max_retries} attempts: {last_error}")
+
+    def call_sonnet(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        model = os.getenv('SONNET_MODEL', 'anthropic/claude-sonnet-4.5')
+        return self.call(model, messages, **kwargs)
+
+    def call_gemini(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        model = os.getenv('GEMINI_MODEL', 'google/gemini-3-pro-preview')
+        return self.call(model, messages, **kwargs)
 
 
-def test_connection():
-    """
-    Test OpenRouter API Connection
+_client = None
 
-    Returns:
-        bool: True wenn Verbindung erfolgreich
-    """
-    try:
-        messages = [{"role": "user", "content": "Antworte mit: OK"}]
-        response = call_openrouter(
-            model="anthropic/claude-sonnet-4-5-20250514",
-            messages=messages,
-            max_tokens=10
-        )
-        return "OK" in response or len(response) > 0
-    except Exception as e:
-        print(f"Connection test failed: {str(e)}")
-        return False
+def get_client() -> OpenRouterClient:
+    global _client
+    if _client is None:
+        _client = OpenRouterClient()
+    return _client
