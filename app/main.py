@@ -62,13 +62,34 @@ def projekt_neu():
         session['projektname'] = projektname
         session['projektplan'] = projektplan
 
-        # Weiterleitung zum Live-Tracker (wird in Auftrag 2.2 implementiert)
-        flash('Projekt-Daten gespeichert! Multi-Agent Workflow startet...', 'success')
-        # TODO: Redirect zu /projekt/tracker wenn implementiert
-        return redirect(url_for('projekt_neu'))
+        # Weiterleitung zum Live-Tracker (Auftrag 2.2)
+        return redirect(url_for('projekt_tracker'))
 
     # GET: Formular anzeigen
     return render_template('projekt_neu.html')
+
+
+@app.route('/projekt/tracker')
+def projekt_tracker():
+    """Live-Tracker für Multi-Agent Workflow (Phase 2, Auftrag 2.2)"""
+    # Projektname aus Session holen
+    projektname = session.get('projektname', 'Unbenanntes Projekt')
+
+    # Initial-Status für Tracker (wird in Auftrag 2.3 dynamisch)
+    tracker_status = {
+        'current_step': 1,
+        'projektname': projektname,
+        'steps': [
+            {'nr': 1, 'name': 'Sonnet analysiert', 'icon': '🔍', 'ai': 'Sonnet 4.5', 'status': 'waiting'},
+            {'nr': 2, 'name': 'Gemini Feedback', 'icon': '💭', 'ai': 'Gemini 3 Pro', 'status': 'waiting'},
+            {'nr': 3, 'name': 'Enterprise-Plan', 'icon': '📋', 'ai': 'Sonnet 4.5', 'status': 'waiting'},
+            {'nr': 4, 'name': 'Qualitätsprüfung', 'icon': '🔎', 'ai': 'Gemini 3 Pro', 'status': 'waiting'},
+            {'nr': 5, 'name': 'Verbesserung', 'icon': '✨', 'ai': 'Sonnet 4.5', 'status': 'waiting'},
+            {'nr': 6, 'name': 'Finale Bewertung', 'icon': '⭐', 'ai': 'Gemini 3 Pro', 'status': 'waiting'},
+        ]
+    }
+
+    return render_template('projekt_tracker.html', tracker=tracker_status)
 
 
 @app.route('/projekt/phasen')
