@@ -26,24 +26,27 @@
                         <p>Sonnet 4.5 und Gemini 3 Pro arbeiten zusammen</p>
                     </div>
 
-                    <!-- Fortschrittsbalken -->
-                    <div class="progress-section">
-                        <div class="progress-label">
-                            <span class="progress-text">Phase {{ tracker.current_step }} von 6</span>
-                            <span class="progress-percentage">{{ (tracker.current_step / 6 * 100) | int }}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: {{ (tracker.current_step / 6 * 100) | int }}%">
-                                <div class="progress-glow"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Schritte-Liste -->
-                    <div class="steps-container"
+                    <!-- HTMX Update Container (Progress + Steps) -->
+                    <div id="tracker-live-content"
                          hx-get="/projekt/tracker/status"
                          hx-trigger="every 2s"
-                         hx-swap="outerHTML">
+                         hx-swap="innerHTML">
+
+                        <!-- Fortschrittsbalken -->
+                        <div class="progress-section">
+                            <div class="progress-label">
+                                <span class="progress-text">Phase {{ tracker.current_step }} von 6</span>
+                                <span class="progress-percentage">{{ (tracker.current_step / 6 * 100) | int }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ (tracker.current_step / 6 * 100) | int }}%">
+                                    <div class="progress-glow"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Schritte-Liste -->
+                        <div class="steps-container">
 
                         {% for step in tracker.steps %}
                         <div class="step-item step-{{ step.status }}">
@@ -75,6 +78,7 @@
                         </div>
                         {% endfor %}
 
+                        </div>
                     </div>
 
                     <!-- Live-Status-Box -->

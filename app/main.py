@@ -3,8 +3,12 @@ NEXUS OVERLORD v2.0 - Main Entry Point
 Flask Web Application
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+# Fix Python path for background threads
+import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from dotenv import load_dotenv
 import threading
 import time
@@ -134,17 +138,55 @@ def projekt_tracker():
 
 @app.route('/projekt/tracker/status')
 def projekt_tracker_status():
-    """HTMX endpoint for live status updates"""
+    """HTMX endpoint for live status updates (Progress Bar + Steps)"""
     workflow_id = session.get('workflow_id')
 
     if not workflow_id or workflow_id not in workflow_storage:
-        return '<div class="steps-container">Workflow lädt...</div>'
+        return '''
+        <div class="progress-section">
+            <div class="progress-label">
+                <span class="progress-text">Phase 0 von 6</span>
+                <span class="progress-percentage">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%">
+                    <div class="progress-glow"></div>
+                </div>
+            </div>
+        </div>
+        <div class="steps-container">
+            <p>Workflow lädt...</p>
+        </div>
+        '''
 
     workflow = workflow_storage[workflow_id]
     status = workflow.get_status()
 
-    # Render steps HTML
-    html = '<div class="steps-container" hx-get="/projekt/tracker/status" hx-trigger="every 2s" hx-swap="outerHTML">'
+    # Calculate progress
+    current_step = status.get('current_step', 0)
+    progress_percent = int((current_step / 6) * 100)
+
+    # Check if complete
+    if status.get('status') == 'complete':
+        return '<script>window.location.href="/projekt/ergebnis";</script>'
+
+    # Build Progress Bar HTML
+    html = f'''
+    <div class="progress-section">
+        <div class="progress-label">
+            <span class="progress-text">Phase {current_step} von 6</span>
+            <span class="progress-percentage">{progress_percent}%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {progress_percent}%">
+                <div class="progress-glow"></div>
+            </div>
+        </div>
+    </div>
+    '''
+
+    # Build Steps HTML
+    html += '<div class="steps-container">'
 
     for step in status['steps']:
         status_class = f'step-{step["status"]}'
