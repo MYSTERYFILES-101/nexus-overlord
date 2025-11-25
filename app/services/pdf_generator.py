@@ -788,3 +788,320 @@ hello_world()""")
     )
 
     return pdf.build()
+
+
+# ========================================
+# KOMPLETTE DOKUMENTATION (Auftrag 6.2)
+# ========================================
+
+def generate_full_documentation(projekt: dict, phasen: list, fehler: list = None, stats: dict = None) -> bytes:
+    """
+    Erstellt eine komplette Projekt-Dokumentation als PDF.
+
+    Args:
+        projekt: Projekt-Dictionary mit allen Daten
+        phasen: Liste aller Phasen mit Auftraegen
+        fehler: Liste der aktiven Fehler (optional)
+        stats: Statistik-Dictionary (optional)
+
+    Returns:
+        bytes: PDF-Daten
+
+    Inhalt:
+        1. Titelseite
+        2. Inhaltsverzeichnis
+        3. Projektuebersicht (Original + Enterprise Plan)
+        4. Phasen & Auftraege
+        5. Fehler & Loesungen
+        6. Statistiken
+    """
+    from datetime import datetime
+
+    logger.info(f"Generiere vollstaendige Dokumentation fuer: {projekt.get('name', 'Unbekannt')}")
+
+    # Status-Text bestimmen
+    status = projekt.get('status', 'erstellt')
+    status_text = {
+        'erstellt': 'In Planung',
+        'bereit': 'Bereit',
+        'in_arbeit': 'In Arbeit',
+        'fertig': 'Abgeschlossen'
+    }.get(status, status.upper())
+
+    # PDF-Generator initialisieren
+    pdf = NexusPDFGenerator(f"{projekt.get('name', 'Projekt')} - Dokumentation")
+
+    # ========================================
+    # 1. TITELSEITE
+    # ========================================
+    pdf.add_title_page(
+        projekt_name=projekt.get('name', 'NEXUS Projekt'),
+        beschreibung=_truncate_text(projekt.get('beschreibung', ''), 200),
+        status=status_text,
+        version="2.0"
+    )
+
+    # ========================================
+    # 2. INHALTSVERZEICHNIS
+    # ========================================
+    toc_entries = [
+        ("1. Projektuebersicht", 1),
+        ("   1.1 Original-Plan", 2),
+        ("   1.2 Enterprise-Plan", 2),
+        ("   1.3 Bewertung", 2),
+        ("2. Phasen & Auftraege", 1),
+    ]
+
+    # Phasen ins Inhaltsverzeichnis
+    for i, phase in enumerate(phasen, 1):
+        phase_name = phase.get('name', f'Phase {i}')
+        toc_entries.append((f"   2.{i} {phase_name}", 2))
+
+    toc_entries.append(("3. Fehler & Loesungen", 1))
+    toc_entries.append(("4. Statistiken", 1))
+
+    pdf.add_toc(toc_entries)
+
+    # ========================================
+    # 3. PROJEKTÜBERSICHT
+    # ========================================
+    pdf.add_chapter("1. Projektuebersicht")
+
+    # Projekt-Info Tabelle
+    created_at = projekt.get('created_at', '')
+    if created_at:
+        try:
+            dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            created_str = dt.strftime('%d.%m.%Y')
+        except:
+            created_str = created_at[:10] if len(created_at) >= 10 else created_at
+    else:
+        created_str = 'Unbekannt'
+
+    pdf.add_table([
+        ["Eigenschaft", "Wert"],
+        ["Projektname", projekt.get('name', '-')],
+        ["Status", status_text],
+        ["Erstellt am", created_str],
+        ["Anzahl Phasen", str(len(phasen))],
+        ["Qualitaet", f"{projekt.get('qualitaet_bewertung', '-')}/10" if projekt.get('qualitaet_bewertung') else '-'],
+    ], col_widths=[5, 12])
+
+    pdf.add_spacer(0.5)
+
+    # 1.1 Original-Plan
+    pdf.add_section("1.1 Original-Plan")
+    original_plan = projekt.get('original_plan', 'Kein Original-Plan vorhanden.')
+    if original_plan:
+        # Text in Absaetze aufteilen
+        paragraphs = original_plan.split('\n')
+        for para in paragraphs[:20]:  # Max 20 Zeilen
+            if para.strip():
+                pdf.add_paragraph(para.strip())
+        if len(paragraphs) > 20:
+            pdf.add_paragraph("... (gekuerzt)")
+    else:
+        pdf.add_paragraph("Kein Original-Plan vorhanden.")
+
+    pdf.add_spacer(0.5)
+
+    # 1.2 Enterprise-Plan
+    pdf.add_section("1.2 Enterprise-Plan")
+    enterprise_plan = projekt.get('enterprise_plan', '')
+    if enterprise_plan:
+        paragraphs = enterprise_plan.split('\n')
+        for para in paragraphs[:30]:  # Max 30 Zeilen
+            if para.strip():
+                pdf.add_paragraph(para.strip())
+        if len(paragraphs) > 30:
+            pdf.add_paragraph("... (gekuerzt)")
+    else:
+        pdf.add_paragraph("Kein Enterprise-Plan generiert.")
+
+    pdf.add_spacer(0.5)
+
+    # 1.3 Bewertung
+    pdf.add_section("1.3 Bewertung")
+    bewertung = projekt.get('bewertung', '')
+    if bewertung:
+        paragraphs = bewertung.split('\n')
+        for para in paragraphs[:15]:
+            if para.strip():
+                pdf.add_paragraph(para.strip())
+    else:
+        pdf.add_paragraph("Keine Bewertung vorhanden.")
+
+    # ========================================
+    # 4. PHASEN & AUFTRÄGE
+    # ========================================
+    pdf.add_page_break()
+    pdf.add_chapter("2. Phasen & Auftraege")
+
+    if not phasen:
+        pdf.add_paragraph("Noch keine Phasen generiert.")
+    else:
+        for i, phase in enumerate(phasen, 1):
+            phase_name = phase.get('name', f'Phase {i}')
+            phase_status = phase.get('status', 'offen')
+
+            # Status-Symbol
+            status_symbol = {
+                'fertig': '[FERTIG]',
+                'in_arbeit': '[IN ARBEIT]',
+                'offen': '[OFFEN]'
+            }.get(phase_status, f'[{phase_status.upper()}]')
+
+            pdf.add_section(f"2.{i} {phase_name} {status_symbol}")
+
+            # Beschreibung
+            if phase.get('beschreibung'):
+                pdf.add_paragraph(phase['beschreibung'])
+
+            # Auftraege als Tabelle
+            auftraege = phase.get('auftraege', [])
+            if auftraege:
+                table_data = [["Nr.", "Auftrag", "Status", "Datum"]]
+
+                for auftrag in auftraege:
+                    nr = f"{phase.get('nummer', i)}.{auftrag.get('nummer', '?')}"
+                    name = _truncate_text(auftrag.get('name', 'Unbenannt'), 35)
+                    a_status = auftrag.get('status', 'offen').upper()
+
+                    # Datum formatieren
+                    updated_at = auftrag.get('updated_at', '')
+                    if updated_at:
+                        try:
+                            dt = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                            datum = dt.strftime('%d.%m.%Y')
+                        except:
+                            datum = updated_at[:10] if len(updated_at) >= 10 else '-'
+                    else:
+                        datum = '-'
+
+                    table_data.append([nr, name, a_status, datum])
+
+                pdf.add_table(table_data, col_widths=[2, 8, 3, 3])
+            else:
+                pdf.add_paragraph("Keine Auftraege in dieser Phase.")
+
+            pdf.add_spacer(0.3)
+
+    # ========================================
+    # 5. FEHLER & LÖSUNGEN
+    # ========================================
+    pdf.add_page_break()
+    pdf.add_chapter("3. Fehler & Loesungen")
+
+    # Aktive Fehler filtern (nicht resolved)
+    aktive_fehler = [f for f in (fehler or []) if f.get('status') != 'resolved']
+
+    if not aktive_fehler:
+        pdf.add_info_box("Keine aktiven Fehler in der Datenbank.")
+    else:
+        pdf.add_paragraph(f"Insgesamt {len(aktive_fehler)} aktive Fehler gefunden:")
+        pdf.add_spacer(0.3)
+
+        # Fehler-Tabelle
+        table_data = [["Fehler", "Kategorie", "Loesung", "Erfolgsrate"]]
+
+        for f in aktive_fehler[:15]:  # Max 15 Fehler
+            fehler_text = _truncate_text(f.get('fehler_text', '-'), 25)
+            kategorie = f.get('kategorie', '-')
+            loesung = _truncate_text(f.get('loesung_kurz', f.get('loesung_text', '-')), 25)
+            erfolgsrate = f"{f.get('erfolgsrate', 0)}%"
+
+            table_data.append([fehler_text, kategorie, loesung, erfolgsrate])
+
+        if len(aktive_fehler) > 15:
+            table_data.append(["...", f"+{len(aktive_fehler) - 15} weitere", "...", "..."])
+
+        pdf.add_table(table_data, col_widths=[5, 3, 6, 2.5])
+
+    # ========================================
+    # 6. STATISTIKEN
+    # ========================================
+    pdf.add_page_break()
+    pdf.add_chapter("4. Statistiken")
+
+    # Fortschritt berechnen
+    total_auftraege = sum(len(p.get('auftraege', [])) for p in phasen)
+    fertige_auftraege = sum(
+        len([a for a in p.get('auftraege', []) if a.get('status') == 'fertig'])
+        for p in phasen
+    )
+    fortschritt = round((fertige_auftraege / total_auftraege * 100) if total_auftraege > 0 else 0)
+
+    # Phasen-Statistik
+    phasen_fertig = len([p for p in phasen if p.get('status') == 'fertig'])
+    phasen_in_arbeit = len([p for p in phasen if p.get('status') == 'in_arbeit'])
+    phasen_offen = len([p for p in phasen if p.get('status') == 'offen'])
+
+    # Statistik-Tabelle
+    pdf.add_section("4.1 Fortschritt")
+    pdf.add_table([
+        ["Metrik", "Wert"],
+        ["Auftraege erledigt", f"{fertige_auftraege} / {total_auftraege}"],
+        ["Gesamtfortschritt", f"{fortschritt}%"],
+        ["Phasen fertig", str(phasen_fertig)],
+        ["Phasen in Arbeit", str(phasen_in_arbeit)],
+        ["Phasen offen", str(phasen_offen)],
+    ], col_widths=[6, 10])
+
+    # Fortschrittsbalken (visuell als Text)
+    pdf.add_spacer(0.3)
+    filled = int(fortschritt / 5)  # 20 Zeichen = 100%
+    bar = "=" * filled + "-" * (20 - filled)
+    pdf.add_paragraph(f"Fortschritt: [{bar}] {fortschritt}%")
+
+    # Fehler-Statistiken
+    if stats:
+        pdf.add_spacer(0.5)
+        pdf.add_section("4.2 Fehler-Statistiken")
+
+        pdf.add_table([
+            ["Metrik", "Wert"],
+            ["Gesamt Fehler", str(stats.get('gesamt', 0))],
+            ["Aktive Fehler", str(stats.get('aktiv', 0))],
+            ["Veraltete Fehler", str(stats.get('veraltet', 0))],
+            ["Durchschnittliche Erfolgsrate", f"{stats.get('durchschnitt_erfolgsrate', 0):.1f}%"],
+            ["Gesamte Nutzungen", str(stats.get('total_nutzungen', 0))],
+        ], col_widths=[6, 10])
+
+    # Projektdauer
+    if projekt.get('created_at'):
+        pdf.add_spacer(0.5)
+        pdf.add_section("4.3 Zeitraum")
+        try:
+            start_dt = datetime.fromisoformat(projekt['created_at'].replace('Z', '+00:00'))
+            jetzt = datetime.now()
+            dauer = (jetzt - start_dt.replace(tzinfo=None)).days
+
+            pdf.add_table([
+                ["Zeitpunkt", "Datum"],
+                ["Projektstart", start_dt.strftime('%d.%m.%Y')],
+                ["Heute", jetzt.strftime('%d.%m.%Y')],
+                ["Projektdauer", f"{dauer} Tage"],
+            ], col_widths=[6, 10])
+        except Exception as e:
+            logger.warning(f"Fehler bei Datumsberechnung: {e}")
+
+    # Footer
+    pdf.add_spacer(1)
+    pdf.add_horizontal_line()
+    pdf.add_paragraph(
+        f"Generiert mit NEXUS OVERLORD v2.0 am {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+        style='NxFooter'
+    )
+
+    logger.info("Vollstaendige Dokumentation erstellt")
+    return pdf.build()
+
+
+def _truncate_text(text: str, max_length: int) -> str:
+    """Kuerzt Text auf maximale Laenge."""
+    if not text:
+        return '-'
+    text = str(text).replace('\n', ' ').strip()
+    if len(text) <= max_length:
+        return text
+    return text[:max_length-3] + '...'

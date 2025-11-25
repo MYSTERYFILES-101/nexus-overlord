@@ -379,19 +379,28 @@ def projekt_liste():
 @projekt_bp.route('/projekt/<int:projekt_id>/export-pdf')
 def export_pdf(projekt_id: int):
     """
-    Exportiert Projekt-Dokumentation als PDF (Auftrag 6.1).
+    Exportiert komplette Projekt-Dokumentation als PDF (Auftrag 6.2).
 
     Args:
         projekt_id: ID des Projekts
 
     Returns:
         PDF-Datei zum Download
+
+    Inhalt:
+        1. Titelseite
+        2. Inhaltsverzeichnis
+        3. Projektuebersicht (Original + Enterprise Plan)
+        4. Phasen & Auftraege
+        5. Fehler & Loesungen
+        6. Statistiken
     """
     from flask import Response
-    from app.services.database import get_projekt_komplett, get_fehler_stats
-    from app.services.pdf_generator import NexusPDFGenerator
+    from datetime import datetime
+    from app.services.database import get_projekt_komplett, get_fehler_stats, get_all_fehler
+    from app.services.pdf_generator import generate_full_documentation
 
-    logger.info(f"PDF-Export fuer Projekt {projekt_id}")
+    logger.info(f"PDF-Export (vollstaendig) fuer Projekt {projekt_id}")
 
     # Komplettes Projekt mit Phasen und Auftraegen laden
     projekt = get_projekt_komplett(projekt_id)
@@ -402,98 +411,30 @@ def export_pdf(projekt_id: int):
     # Phasen aus Projekt extrahieren
     phasen = projekt.get('phasen', [])
 
-    # PDF Generator initialisieren
-    pdf = NexusPDFGenerator(f"{projekt['name']} - Dokumentation")
+    # Fehler laden (falls Funktion existiert)
+    try:
+        fehler = get_all_fehler()
+    except:
+        fehler = []
 
-    # Titelseite
-    pdf.add_title_page(
-        projekt_name=projekt['name'],
-        beschreibung=projekt.get('beschreibung', '')[:200] if projekt.get('beschreibung') else '',
-        status=projekt.get('status', 'Aktiv'),
-        version="2.0"
+    # Fehler-Statistiken laden
+    try:
+        stats = get_fehler_stats()
+    except:
+        stats = {}
+
+    # Vollstaendige Dokumentation generieren
+    pdf_bytes = generate_full_documentation(
+        projekt=projekt,
+        phasen=phasen,
+        fehler=fehler,
+        stats=stats
     )
 
-    # Inhaltsverzeichnis
-    toc_entries = [
-        ("1. Projektuebersicht", 1),
-        ("2. Phasen & Auftraege", 1),
-    ]
-    for i, phase in enumerate(phasen, 1):
-        toc_entries.append((f"   2.{i} {phase['name']}", 2))
-    toc_entries.append(("3. Statistiken", 1))
-    pdf.add_toc(toc_entries)
-
-    # Kapitel 1: Projektuebersicht
-    pdf.add_chapter("1. Projektuebersicht")
-    pdf.add_paragraph(projekt.get('beschreibung', 'Keine Beschreibung verfuegbar.'))
-    pdf.add_spacer()
-
-    # Projekt-Info Tabelle
-    pdf.add_table([
-        ["Eigenschaft", "Wert"],
-        ["Name", projekt['name']],
-        ["Status", projekt.get('status', 'Aktiv')],
-        ["Erstellt", projekt.get('created_at', 'Unbekannt')[:10] if projekt.get('created_at') else 'Unbekannt'],
-        ["Phasen", str(len(phasen))],
-    ], col_widths=[5, 10])
-
-    # Kapitel 2: Phasen & Auftraege
-    pdf.add_page_break()
-    pdf.add_chapter("2. Phasen & Auftraege")
-
-    for i, phase in enumerate(phasen, 1):
-        pdf.add_section(f"2.{i} {phase['name']}")
-
-        # Phase-Info
-        if phase.get('beschreibung'):
-            pdf.add_paragraph(phase['beschreibung'])
-
-        # Status-Info
-        status_text = f"Status: {phase.get('status', 'offen').upper()}"
-        pdf.add_paragraph(f"<b>{status_text}</b>")
-
-        # Auftraege als Tabelle
-        auftraege = phase.get('auftraege', [])
-        if auftraege:
-            table_data = [["Nr.", "Name", "Status"]]
-            for auftrag in auftraege:
-                nr = f"{phase.get('nummer', i)}.{auftrag.get('nummer', '?')}"
-                name = auftrag.get('name', 'Unbenannt')[:40]
-                status = auftrag.get('status', 'offen')
-                table_data.append([nr, name, status.upper()])
-
-            pdf.add_table(table_data, col_widths=[2, 10, 3])
-        else:
-            pdf.add_paragraph("Keine Auftraege vorhanden.")
-
-        pdf.add_spacer(0.5)
-
-    # Kapitel 3: Statistiken
-    pdf.add_page_break()
-    pdf.add_chapter("3. Statistiken")
-
-    # Fortschritt berechnen
-    total_auftraege = sum(len(p.get('auftraege', [])) for p in phasen)
-    fertige_auftraege = sum(
-        len([a for a in p.get('auftraege', []) if a.get('status') == 'fertig'])
-        for p in phasen
-    )
-    fortschritt = round((fertige_auftraege / total_auftraege * 100) if total_auftraege > 0 else 0)
-
-    pdf.add_table([
-        ["Metrik", "Wert"],
-        ["Gesamtfortschritt", f"{fortschritt}%"],
-        ["Phasen gesamt", str(len(phasen))],
-        ["Auftraege gesamt", str(total_auftraege)],
-        ["Auftraege fertig", str(fertige_auftraege)],
-        ["Auftraege offen", str(total_auftraege - fertige_auftraege)],
-    ], col_widths=[6, 6])
-
-    # PDF generieren
-    pdf_bytes = pdf.build()
-
-    # Als Download zurueckgeben
-    filename = f"{projekt['name'].replace(' ', '_')}_Dokumentation.pdf"
+    # Dateiname mit Datum
+    projekt_name = projekt['name'].replace(' ', '_').replace('/', '-')
+    datum = datetime.now().strftime('%Y-%m-%d')
+    filename = f"NEXUS_{projekt_name}_Dokumentation_{datum}.pdf"
 
     return Response(
         pdf_bytes,

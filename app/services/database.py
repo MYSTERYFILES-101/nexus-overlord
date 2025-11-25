@@ -704,6 +704,45 @@ def update_fehler_status(fehler_id: int, status: str) -> bool:
         return False
 
 
+def get_all_fehler(limit: int = 100) -> list[dict]:
+    """
+    Holt alle Fehler aus der Datenbank (Auftrag 6.2).
+
+    Args:
+        limit: Max Anzahl Ergebnisse (default 100)
+
+    Returns:
+        list[dict]: Liste aller Fehler
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT * FROM fehler
+            ORDER BY anzahl DESC, erfolgsrate DESC
+            LIMIT ?
+        """, (limit,))
+
+        fehler = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        # Tags parsen
+        for f in fehler:
+            if f.get('tags'):
+                try:
+                    f['tags_list'] = json.loads(f['tags'])
+                except json.JSONDecodeError:
+                    f['tags_list'] = []
+
+        logger.debug(f"Alle Fehler geladen: {len(fehler)} Eintraege")
+        return fehler
+
+    except sqlite3.Error as e:
+        logger.error(f"Fehler beim Laden aller Fehler: {e}")
+        return []
+
+
 def get_fehler_by_kategorie(kategorie: str, limit: int = 20) -> list[dict]:
     """
     Holt alle Fehler einer Kategorie.

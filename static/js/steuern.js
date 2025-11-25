@@ -618,14 +618,85 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ========================================
-    // ACTION BUTTONS (Platzhalter für 4.6)
+    // EXPORT PDF BUTTON (Auftrag 6.2)
     // ========================================
 
-    // Export Button
+    // Export Button - Laedt vollstaendige Dokumentation als PDF
     if (btnExport) {
         btnExport.addEventListener('click', function() {
-            showActionInfo('Export PDF', 'Projekt als PDF exportieren - Diese Funktion wird in Auftrag 4.6 implementiert.');
+            exportPDF();
         });
+    }
+
+    function exportPDF() {
+        if (!projektId) {
+            addChatMessage('system', 'Fehler: Projekt-ID nicht gefunden.');
+            return;
+        }
+
+        // Button deaktivieren waehrend des Exports
+        btnExport.disabled = true;
+        btnExport.innerHTML = '<span class="btn-icon">&#8987;</span><span class="btn-text">Generiere...</span>';
+
+        // Leere Chat-Anzeige entfernen
+        clearChatEmpty();
+
+        // Info-Nachricht anzeigen
+        addChatMessage('system', 'PDF-Dokumentation wird generiert...');
+
+        // PDF herunterladen ueber versteckten Link
+        const downloadUrl = `/projekt/${projektId}/export-pdf`;
+
+        // Temporaeren Link erstellen und klicken
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = '';  // Filename kommt vom Server
+        link.style.display = 'none';
+        document.body.appendChild(link);
+
+        // Fetch um zu pruefen ob PDF erfolgreich generiert wird
+        fetch(downloadUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('PDF-Generierung fehlgeschlagen');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Blob-URL erstellen und herunterladen
+                const blobUrl = URL.createObjectURL(blob);
+                link.href = blobUrl;
+
+                // Dateiname aus Header holen oder Standard verwenden
+                const datum = new Date().toISOString().split('T')[0];
+                link.download = `NEXUS_Dokumentation_${datum}.pdf`;
+
+                link.click();
+
+                // Aufraumen
+                URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(link);
+
+                // Erfolgs-Nachricht
+                addChatMessage('system', 'PDF-Dokumentation erfolgreich heruntergeladen!');
+
+                // Button wieder aktivieren
+                btnExport.disabled = false;
+                btnExport.innerHTML = '<span class="btn-icon">&#128196;</span><span class="btn-text">Export PDF</span>';
+            })
+            .catch(error => {
+                console.error('PDF-Export-Fehler:', error);
+                addChatMessage('system', 'Fehler beim PDF-Export: ' + error.message);
+
+                // Button wieder aktivieren
+                btnExport.disabled = false;
+                btnExport.innerHTML = '<span class="btn-icon">&#128196;</span><span class="btn-text">Export PDF</span>';
+
+                // Link entfernen
+                if (document.body.contains(link)) {
+                    document.body.removeChild(link);
+                }
+            });
     }
 
     function showActionInfo(action, message) {
