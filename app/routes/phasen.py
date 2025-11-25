@@ -1,7 +1,7 @@
 """
 NEXUS OVERLORD v2.0 - Phasen Routes
 
-Kachel 2: Phasen und Aufträge generieren, Qualitätsprüfung.
+Kachel 2: Phasen und Auftraege generieren, Qualitaetspruefung.
 """
 
 import logging
@@ -17,7 +17,7 @@ phasen_bp = Blueprint('phasen', __name__)
 
 @phasen_bp.route('/projekt/<int:projekt_id>/phasen', methods=['GET', 'POST'])
 def projekt_phasen_view(projekt_id: int):
-    """Kachel 2: Phasen & Aufträge generieren (Phase 3)."""
+    """Kachel 2: Phasen & Auftraege generieren (Phase 3)."""
     from app.services.database import get_projekt
     from app.services.phasen_generator import generate_phasen
 
@@ -81,7 +81,7 @@ def projekt_phasen():
 
 @phasen_bp.route('/projekt/<int:projekt_id>/auftraege/generieren', methods=['POST'])
 def auftraege_generieren(projekt_id: int):
-    """Generiert Aufträge mit Opus 4.5 (Auftrag 3.2)."""
+    """Generiert Auftraege mit Opus 4.5 (Auftrag 3.2)."""
     from app.services.database import get_projekt
     from app.services.auftraege_generator import generate_auftraege
 
@@ -101,7 +101,7 @@ def auftraege_generieren(projekt_id: int):
         session['auftraege_data'] = auftraege_data
         session['projekt_id'] = projekt_id
 
-        flash('Aufträge erfolgreich generiert!', 'success')
+        flash('Auftraege erfolgreich generiert!', 'success')
         return redirect(url_for('phasen.auftraege_anzeigen', projekt_id=projekt_id))
 
     except Exception as e:
@@ -112,7 +112,7 @@ def auftraege_generieren(projekt_id: int):
 
 @phasen_bp.route('/projekt/<int:projekt_id>/auftraege')
 def auftraege_anzeigen(projekt_id: int):
-    """Zeigt generierte Aufträge an (Auftrag 3.2)."""
+    """Zeigt generierte Auftraege an (Auftrag 3.2)."""
     from app.services.database import get_projekt
 
     projekt = get_projekt(projekt_id)
@@ -120,10 +120,10 @@ def auftraege_anzeigen(projekt_id: int):
     phasen_data = session.get('phasen_data')
 
     if not auftraege_data:
-        flash('Keine Aufträge gefunden. Bitte erst generieren.', 'error')
+        flash('Keine Auftraege gefunden. Bitte erst generieren.', 'error')
         return redirect(url_for('phasen.projekt_phasen_ergebnis', projekt_id=projekt_id))
 
-    # Gruppiere Aufträge nach Phase
+    # Gruppiere Auftraege nach Phase
     auftraege_by_phase = {}
     for auftrag in auftraege_data.get('auftraege', []):
         phase_nr = auftrag['phase_nummer']
@@ -146,7 +146,7 @@ def auftraege_anzeigen(projekt_id: int):
 
 @phasen_bp.route('/projekt/<int:projekt_id>/auftraege/pruefen', methods=['POST'])
 def auftraege_pruefen(projekt_id: int):
-    """Prüft Aufträge mit Gemini 3 Pro (Auftrag 3.3)."""
+    """Prueft Auftraege mit Gemini 3 Pro (Auftrag 3.3)."""
     from app.services.database import get_projekt
     from app.services.qualitaetspruefung import pruefen_auftraege
 
@@ -159,7 +159,7 @@ def auftraege_pruefen(projekt_id: int):
         return redirect(url_for('home.index'))
 
     if not phasen_data or not auftraege_data:
-        flash('Erst Phasen und Aufträge generieren!', 'error')
+        flash('Erst Phasen und Auftraege generieren!', 'error')
         return redirect(url_for('phasen.projekt_phasen_view', projekt_id=projekt_id))
 
     try:
@@ -167,18 +167,18 @@ def auftraege_pruefen(projekt_id: int):
         session['qualitaet_data'] = qualitaet_data
         session['projekt_id'] = projekt_id
 
-        flash('Qualitätsprüfung abgeschlossen!', 'success')
+        flash('Qualitaetspruefung abgeschlossen!', 'success')
         return redirect(url_for('phasen.qualitaet_anzeigen', projekt_id=projekt_id))
 
     except Exception as e:
-        logger.error(f"Qualitätsprüfung fehlgeschlagen: {e}")
-        flash(f'Fehler bei Qualitätsprüfung: {str(e)}', 'error')
+        logger.error(f"Qualitaetspruefung fehlgeschlagen: {e}")
+        flash(f'Fehler bei Qualitaetspruefung: {str(e)}', 'error')
         return redirect(url_for('phasen.auftraege_anzeigen', projekt_id=projekt_id))
 
 
 @phasen_bp.route('/projekt/<int:projekt_id>/auftraege/qualitaet')
 def qualitaet_anzeigen(projekt_id: int):
-    """Zeigt Qualitäts-Bewertung an (Auftrag 3.3)."""
+    """Zeigt Qualitaets-Bewertung an (Auftrag 3.3)."""
     from app.services.database import get_projekt
     from app.services.qualitaetspruefung import get_status_icon, get_status_color
 
@@ -186,7 +186,7 @@ def qualitaet_anzeigen(projekt_id: int):
     qualitaet_data = session.get('qualitaet_data')
 
     if not qualitaet_data:
-        flash('Keine Qualitätsprüfung gefunden. Bitte erst prüfen.', 'error')
+        flash('Keine Qualitaetspruefung gefunden. Bitte erst pruefen.', 'error')
         return redirect(url_for('phasen.auftraege_anzeigen', projekt_id=projekt_id))
 
     for kategorie in qualitaet_data.get('kategorien', []):
@@ -215,17 +215,17 @@ def projekt_abschliessen(projekt_id: int):
         # 1. Phasen speichern
         phase_ids = save_phasen(projekt_id, phasen_data)
 
-        # 2. Aufträge pro Phase speichern
+        # 2. Auftraege pro Phase speichern
         for phase_nr, phase_id in phase_ids:
             phase_auftraege = [a for a in auftraege_data.get('auftraege', [])
                               if a['phase_nummer'] == phase_nr]
             if phase_auftraege:
                 save_auftraege(phase_id, phase_auftraege)
 
-        # 3. Qualität speichern
+        # 3. Qualitaet speichern
         update_projekt_qualitaet(projekt_id, qualitaet_data)
 
-        # 4. Session aufräumen
+        # 4. Session aufraeumen
         session.pop('phasen_data', None)
         session.pop('auftraege_data', None)
         session.pop('qualitaet_data', None)
@@ -235,6 +235,6 @@ def projekt_abschliessen(projekt_id: int):
         return redirect(url_for('projekt.projekt_uebersicht', projekt_id=projekt_id))
 
     except Exception as e:
-        logger.error(f"Fehler beim Abschließen: {e}")
+        logger.error(f"Fehler beim Abschliessen: {e}")
         flash(f'Fehler beim Speichern: {str(e)}', 'error')
         return redirect(url_for('phasen.qualitaet_anzeigen', projekt_id=projekt_id))
