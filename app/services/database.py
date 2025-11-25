@@ -919,7 +919,7 @@ def migrate_fehler_table() -> bool:
         cursor.execute("PRAGMA table_info(fehler)")
         existing_columns = {row['name'] for row in cursor.fetchall()}
 
-        # Neue Spalten definieren
+        # Neue Spalten definieren (ohne CURRENT_TIMESTAMP wegen SQLite)
         new_columns = [
             ("projekt_id", "INTEGER"),
             ("severity", "TEXT DEFAULT 'medium'"),
@@ -928,8 +928,8 @@ def migrate_fehler_table() -> bool:
             ("stack_trace", "TEXT"),
             ("fix_command", "TEXT"),
             ("similar_count", "INTEGER DEFAULT 0"),
-            ("last_seen", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
-            ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP")
+            ("last_seen", "TEXT"),
+            ("updated_at", "TEXT")
         ]
 
         # Fehlende Spalten hinzufuegen
@@ -937,6 +937,14 @@ def migrate_fehler_table() -> bool:
             if col_name not in existing_columns:
                 logger.info(f"Fuege Spalte hinzu: {col_name}")
                 cursor.execute(f"ALTER TABLE fehler ADD COLUMN {col_name} {col_type}")
+
+        # Setze Default-Werte fuer bestehende Zeilen
+        cursor.execute("""
+            UPDATE fehler
+            SET last_seen = created_at,
+                updated_at = created_at
+            WHERE last_seen IS NULL OR updated_at IS NULL
+        """)
 
         # Index fuer neue Spalten
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_fehler_severity ON fehler(severity)")
