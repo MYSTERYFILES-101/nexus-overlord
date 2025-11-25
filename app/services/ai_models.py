@@ -1,6 +1,6 @@
 """
 NEXUS OVERLORD v2.0 - AI Models Integration
-Funktionen fuer Gemini 3 Pro und Claude Sonnet 4.5
+Funktionen fuer Gemini 3 Pro und Claude Opus 4.5
 """
 
 from app.services.openrouter import call_openrouter
@@ -66,12 +66,12 @@ def call_gemini(prompt: str, system: str = None, max_tokens: int = 4000, tempera
 
 
 # ========================================
-# CLAUDE SONNET 4.5 - Detailarbeiter
+# CLAUDE OPUS 4.5 - Detailarbeiter
 # ========================================
 
 def call_sonnet(prompt: str, system: str = None, max_tokens: int = 4000, temperature: float = 0.7):
     """
-    Call Claude Sonnet 4.5 via OpenRouter
+    Call Claude Opus 4.5 via OpenRouter
 
     Verwendung:
     - Detailarbeiter
@@ -87,7 +87,7 @@ def call_sonnet(prompt: str, system: str = None, max_tokens: int = 4000, tempera
         temperature (float): Kreativitaet 0.0-1.0 (default: 0.7)
 
     Returns:
-        str: Antwort von Claude Sonnet 4.5
+        str: Antwort von Claude Opus 4.5
 
     Example:
         >>> response = call_sonnet("Erstelle einen Auftrag fuer...")
@@ -118,13 +118,13 @@ def call_sonnet(prompt: str, system: str = None, max_tokens: int = 4000, tempera
 def multi_agent_workflow(user_plan: str):
     """
     6-Phasen Multi-Agent Workflow
-    Gemini und Sonnet arbeiten zusammen
+    Gemini und Opus arbeiten zusammen
 
-    Phase 1: Sonnet analysiert
+    Phase 1: Opus analysiert
     Phase 2: Gemini gibt Feedback
-    Phase 3: Sonnet erstellt Enterprise-Plan
+    Phase 3: Opus erstellt Enterprise-Plan
     Phase 4: Gemini prueft Qualitaet
-    Phase 5: Sonnet verbessert
+    Phase 5: Opus verbessert
     Phase 6: Gemini finale Bewertung
 
     Args:

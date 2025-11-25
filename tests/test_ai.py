@@ -1,6 +1,6 @@
 """
 NEXUS OVERLORD v2.0 - AI Models Test
-Test-Script für Gemini 3 Pro und Claude Sonnet 4.5
+Test-Script für Gemini 3 Pro und Claude Opus 4.5
 """
 
 import sys
@@ -60,29 +60,29 @@ def test_gemini():
 
 
 def test_sonnet():
-    """Test 3: Claude Sonnet 4.5"""
+    """Test 3: Claude Opus 4.5"""
     print("\n" + "=" * 60)
-    print("TEST 3: Claude Sonnet 4.5 (Detailarbeiter)")
+    print("TEST 3: Claude Opus 4.5 (Detailarbeiter)")
     print("=" * 60)
     print(f"Model: {MODEL_SONNET}")
     print()
 
     try:
-        prompt = "Sage 'Hallo von Sonnet 4.5!' und erkläre in einem Satz deine Rolle als Detailarbeiter."
+        prompt = "Sage 'Hallo von Opus 4.5!' und erkläre in einem Satz deine Rolle als Detailarbeiter."
 
         print("Prompt:", prompt)
         print("\nWarte auf Antwort...")
 
         response = call_sonnet(prompt, max_tokens=100)
 
-        print("\n✅ Antwort von Sonnet 4.5:")
+        print("\n✅ Antwort von Opus 4.5:")
         print("-" * 60)
         print(response)
         print("-" * 60)
         return True
 
     except Exception as e:
-        print(f"\n❌ Fehler bei Sonnet: {str(e)}")
+        print(f"\n❌ Fehler bei Opus: {str(e)}")
         return False
 
 
@@ -129,8 +129,8 @@ def main():
     # Test 2: Gemini
     results.append(("Gemini 3 Pro", test_gemini()))
 
-    # Test 3: Sonnet
-    results.append(("Sonnet 4.5", test_sonnet()))
+    # Test 3: Opus
+    results.append(("Opus 4.5", test_sonnet()))
 
     # Test 4: System Prompt
     results.append(("System Prompt", test_with_system_prompt()))

@@ -1,6 +1,6 @@
 """
 NEXUS OVERLORD v2.0 - Auftrag Formatierer (Auftrag 4.2)
-Formatiert Auftraege fuer Claude Code mit Sonnet 4.5
+Formatiert Auftraege fuer Claude Code mit Opus 4.5
 """
 
 from app.services.openrouter import get_client
@@ -135,7 +135,7 @@ def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
 
 def format_auftrag_with_ai(auftrag: dict, projekt: dict) -> str:
     """
-    Formatiert einen Auftrag mit Sonnet 4.5 fuer bessere Qualitaet.
+    Formatiert einen Auftrag mit Opus 4.5 fuer bessere Qualitaet.
     Fallback auf lokale Formatierung bei API-Fehlern.
 
     Args:
