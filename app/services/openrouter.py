@@ -161,13 +161,13 @@ class OpenRouterClient:
         Returns:
             str: Antwort vom Modell
         """
-        model = os.getenv('OPUS_MODEL', 'anthropic/claude-opus-4')
-        logger.debug("call_sonnet() -> Opus 4")
+        model = os.getenv('OPUS_MODEL', 'anthropic/claude-opus-4.5')
+        logger.debug("call_sonnet() -> Opus 4.5")
         return self.call(model, messages, **kwargs)
 
     def call_opus(self, messages: list[dict[str, str]], **kwargs: Any) -> str:
         """
-        Ruft Opus 4 auf - das neueste Claude-Modell.
+        Ruft Opus 4.5 auf - das neueste Claude-Modell.
 
         Args:
             messages: Liste von Nachrichten
@@ -176,7 +176,7 @@ class OpenRouterClient:
         Returns:
             str: Antwort vom Modell
         """
-        model = os.getenv('OPUS_MODEL', 'anthropic/claude-opus-4')
+        model = os.getenv('OPUS_MODEL', 'anthropic/claude-opus-4.5')
         logger.debug("call_opus() -> Opus 4.5")
         return self.call(model, messages, **kwargs)
 
