@@ -388,19 +388,19 @@ def export_pdf(projekt_id: int):
         PDF-Datei zum Download
     """
     from flask import Response
-    from app.services.database import get_projekt, get_projekt_phasen, get_fehler_stats
+    from app.services.database import get_projekt_komplett, get_fehler_stats
     from app.services.pdf_generator import NexusPDFGenerator
 
     logger.info(f"PDF-Export fuer Projekt {projekt_id}")
 
-    # Projekt laden
-    projekt = get_projekt(projekt_id)
+    # Komplettes Projekt mit Phasen und Auftraegen laden
+    projekt = get_projekt_komplett(projekt_id)
     if not projekt:
         flash('Projekt nicht gefunden.', 'error')
         return redirect(url_for('home.index'))
 
-    # Phasen laden
-    phasen = get_projekt_phasen(projekt_id)
+    # Phasen aus Projekt extrahieren
+    phasen = projekt.get('phasen', [])
 
     # PDF Generator initialisieren
     pdf = NexusPDFGenerator(f"{projekt['name']} - Dokumentation")
