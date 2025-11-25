@@ -7,7 +7,7 @@ Workflow:
     1. Opus 4.5 analysiert den User-Plan
     2. Gemini 3 Pro gibt Feedback zur Analyse
     3. Opus 4.5 erstellt Enterprise-Plan
-    4. Gemini 3 Pro prüft Qualität
+    4. Gemini 3 Pro prueft Qualitaet
     5. Opus 4.5 verbessert den Plan
     6. Gemini 3 Pro bewertet final
 """
@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 class MultiAgentWorkflow:
     """
-    6-Phasen Multi-Agent Workflow für Enterprise-Plan Erstellung.
+    6-Phasen Multi-Agent Workflow fuer Enterprise-Plan Erstellung.
 
     Der Workflow nutzt zwei KI-Modelle (Opus 4.5 + Gemini 3 Pro) in
     einem iterativen Prozess, um aus einem einfachen Projektplan
-    einen vollständigen Enterprise-Plan zu erstellen.
+    einen vollstaendigen Enterprise-Plan zu erstellen.
 
     Attributes:
         client: OpenRouter API Client
@@ -58,7 +58,7 @@ class MultiAgentWorkflow:
             {"nr": 1, "name": "Opus analysiert", "icon": "🔍", "ai": "Opus 4.5", "status": "waiting", "result": None},
             {"nr": 2, "name": "Gemini Feedback", "icon": "💭", "ai": "Gemini 3 Pro", "status": "waiting", "result": None},
             {"nr": 3, "name": "Enterprise-Plan", "icon": "📋", "ai": "Opus 4.5", "status": "waiting", "result": None},
-            {"nr": 4, "name": "Qualitätsprüfung", "icon": "🔎", "ai": "Gemini 3 Pro", "status": "waiting", "result": None},
+            {"nr": 4, "name": "Qualitaetspruefung", "icon": "🔎", "ai": "Gemini 3 Pro", "status": "waiting", "result": None},
             {"nr": 5, "name": "Verbesserung", "icon": "✨", "ai": "Opus 4.5", "status": "waiting", "result": None},
             {"nr": 6, "name": "Finale Bewertung", "icon": "⭐", "ai": "Gemini 3 Pro", "status": "waiting", "result": None},
         ]
@@ -84,7 +84,7 @@ class MultiAgentWorkflow:
 
     def run(self, projektname: str, projektplan: str) -> dict[str, Any]:
         """
-        Führt den kompletten 6-Phasen Workflow aus.
+        Fuehrt den kompletten 6-Phasen Workflow aus.
 
         Args:
             projektname: Name des Projekts
@@ -96,7 +96,7 @@ class MultiAgentWorkflow:
         Raises:
             Exception: Bei Fehlern in einer der Phasen
         """
-        logger.info(f"Starte Multi-Agent Workflow für Projekt: {projektname}")
+        logger.info(f"Starte Multi-Agent Workflow fuer Projekt: {projektname}")
 
         try:
             # Phase 1: Opus analysiert
@@ -123,8 +123,8 @@ class MultiAgentWorkflow:
             self.status["results"]["enterprise_plan"] = enterprise_plan
             logger.info("Phase 3 abgeschlossen")
 
-            # Phase 4: Qualitätsprüfung
-            logger.info("Phase 4: Gemini prüft Qualität")
+            # Phase 4: Qualitaetspruefung
+            logger.info("Phase 4: Gemini prueft Qualitaet")
             self._set_step_status(4, "active")
             gepruefter_plan = self._phase_4_qualitaetspruefung(enterprise_plan)
             self._set_step_status(4, "done", gepruefter_plan)
@@ -152,7 +152,7 @@ class MultiAgentWorkflow:
             self.status["bewertung"] = bewertung
             self.status["current_step"] = 6
 
-            logger.info(f"Multi-Agent Workflow erfolgreich abgeschlossen für: {projektname}")
+            logger.info(f"Multi-Agent Workflow erfolgreich abgeschlossen fuer: {projektname}")
             return self.status
 
         except Exception as e:
@@ -204,7 +204,7 @@ Erstelle eine detaillierte Analyse mit:
         Phase 2: Gemini gibt Feedback zur Analyse.
 
         Args:
-            projektplan: Der ursprüngliche User-Plan
+            projektplan: Der urspruengliche User-Plan
             analyse: Die Analyse aus Phase 1
 
         Returns:
@@ -217,7 +217,7 @@ Erstelle eine detaillierte Analyse mit:
             },
             {
                 "role": "user",
-                "content": f"""Ursprünglicher Projektplan:
+                "content": f"""Urspruenglicher Projektplan:
 {projektplan}
 
 Analyse von Opus:
@@ -226,8 +226,8 @@ Analyse von Opus:
 Gib kritisches aber konstruktives Feedback:
 1. Was wurde gut analysiert?
 2. Was fehlt in der Analyse?
-3. Welche zusätzlichen Aspekte sollten berücksichtigt werden?
-4. Gibt es Risiken die nicht erwähnt wurden?"""
+3. Welche zusaetzlichen Aspekte sollten beruecksichtigt werden?
+4. Gibt es Risiken die nicht erwaehnt wurden?"""
             }
         ]
 
@@ -238,7 +238,7 @@ Gib kritisches aber konstruktives Feedback:
         Phase 3: Opus erstellt den Enterprise-Plan.
 
         Args:
-            projektplan: Der ursprüngliche User-Plan
+            projektplan: Der urspruengliche User-Plan
             analyse: Die Analyse aus Phase 1
             feedback: Das Feedback aus Phase 2
 
@@ -270,7 +270,7 @@ Der Enterprise-Plan soll enthalten:
 4. Entwicklungs-Phasen (zeitlich strukturiert)
 5. Risiken & Mitigation
 6. Ressourcen-Planung
-7. Qualitätssicherung
+7. Qualitaetssicherung
 
 Format: Professionell, strukturiert, Enterprise-ready."""
             }
@@ -280,7 +280,7 @@ Format: Professionell, strukturiert, Enterprise-ready."""
 
     def _phase_4_qualitaetspruefung(self, enterprise_plan: str) -> str:
         """
-        Phase 4: Gemini prüft Qualität und entfernt Überflüssiges.
+        Phase 4: Gemini prueft Qualitaet und entfernt Ueberfluessiges.
 
         Args:
             enterprise_plan: Der Enterprise-Plan aus Phase 3
@@ -291,22 +291,22 @@ Format: Professionell, strukturiert, Enterprise-ready."""
         messages = [
             {
                 "role": "system",
-                "content": "Du bist ein Qualitäts-Manager. Prüfe den Plan auf Vollständigkeit, Konsistenz und entferne Überflüssiges."
+                "content": "Du bist ein Qualitaets-Manager. Pruefe den Plan auf Vollstaendigkeit, Konsistenz und entferne Ueberfluessiges."
             },
             {
                 "role": "user",
-                "content": f"""Prüfe diesen Enterprise-Plan:
+                "content": f"""Pruefe diesen Enterprise-Plan:
 
 {enterprise_plan}
 
 Aufgaben:
-1. Prüfe auf Vollständigkeit
-2. Entferne redundante oder überflüssige Abschnitte
-3. Prüfe auf Konsistenz
-4. Identifiziere Lücken
-5. Gib den optimierten Plan zurück (ohne Überflüssiges)
+1. Pruefe auf Vollstaendigkeit
+2. Entferne redundante oder ueberfluessige Abschnitte
+3. Pruefe auf Konsistenz
+4. Identifiziere Luecken
+5. Gib den optimierten Plan zurueck (ohne Ueberfluessiges)
 
-Gib NUR den optimierten Plan zurück, keine zusätzliche Erklärung."""
+Gib NUR den optimierten Plan zurueck, keine zusaetzliche Erklaerung."""
             }
         ]
 
@@ -317,8 +317,8 @@ Gib NUR den optimierten Plan zurück, keine zusätzliche Erklärung."""
         Phase 5: Opus verbessert den Plan basierend auf Feedback.
 
         Args:
-            gepruefter_plan: Der geprüfte Plan aus Phase 4
-            feedback: Das ursprüngliche Feedback aus Phase 2
+            gepruefter_plan: Der gepruefte Plan aus Phase 4
+            feedback: Das urspruengliche Feedback aus Phase 2
 
         Returns:
             str: Der finale, verbesserte Plan
@@ -334,16 +334,16 @@ Gib NUR den optimierten Plan zurück, keine zusätzliche Erklärung."""
 
 {gepruefter_plan}
 
-Berücksichtige dabei das frühere Feedback:
+Beruecksichtige dabei das fruehere Feedback:
 {feedback}
 
 Erstelle die finale, verbesserte Version:
 - Integriere alle wichtigen Punkte aus dem Feedback
-- Behebe identifizierte Lücken
+- Behebe identifizierte Luecken
 - Optimiere Struktur und Klarheit
 - Mache ihn actionable und umsetzbar
 
-Gib NUR den finalen Plan zurück."""
+Gib NUR den finalen Plan zurueck."""
             }
         ]
 
@@ -357,7 +357,7 @@ Gib NUR den finalen Plan zurück."""
             finaler_plan: Der finale Plan aus Phase 5
 
         Returns:
-            str: Die Bewertung mit Sternen und Begründung
+            str: Die Bewertung mit Sternen und Begruendung
         """
         messages = [
             {
@@ -374,13 +374,13 @@ Gib eine Bewertung im folgenden Format:
 
 BEWERTUNG: X/10 Sterne
 
-BEGRÜNDUNG:
-- [Stärken des Plans]
-- [Schwächen/Verbesserungspotential]
+BEGRUeNDUNG:
+- [Staerken des Plans]
+- [Schwaechen/Verbesserungspotential]
 - [Umsetzbarkeit]
-- [Vollständigkeit]
+- [Vollstaendigkeit]
 
-EMPFEHLUNG: [Kann direkt umgesetzt werden / Noch Anpassungen nötig / etc.]"""
+EMPFEHLUNG: [Kann direkt umgesetzt werden / Noch Anpassungen noetig / etc.]"""
             }
         ]
 
@@ -388,7 +388,7 @@ EMPFEHLUNG: [Kann direkt umgesetzt werden / Noch Anpassungen nötig / etc.]"""
 
     def get_status(self) -> dict[str, Any]:
         """
-        Gibt den aktuellen Workflow-Status zurück.
+        Gibt den aktuellen Workflow-Status zurueck.
 
         Returns:
             dict: Status mit current_step, steps, results, final_plan, bewertung, error

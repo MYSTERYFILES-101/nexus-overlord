@@ -1,6 +1,6 @@
 """
 NEXUS OVERLORD v2.0 - Fehler Analyzer (Auftrag 4.3)
-Analysiert Fehler mit Gemini 3 Pro und erstellt Lösungs-Aufträge mit Opus 4.5
+Analysiert Fehler mit Gemini 3 Pro und erstellt Loesungs-Auftraege mit Opus 4.5
 """
 
 import json
@@ -11,12 +11,12 @@ from app.services.database import search_fehler, save_fehler, increment_fehler_c
 
 def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD") -> dict:
     """
-    Analysiert einen Fehler und gibt Lösung zurück.
+    Analysiert einen Fehler und gibt Loesung zurueck.
 
     Workflow:
-    1. Prüfe Fehler-Datenbank nach bekanntem Muster
-    2. Falls bekannt → Lösung aus DB
-    3. Falls neu → Gemini 3 Pro analysiert, Opus 4.5 erstellt Lösungs-Auftrag
+    1. Pruefe Fehler-Datenbank nach bekanntem Muster
+    2. Falls bekannt → Loesung aus DB
+    3. Falls neu → Gemini 3 Pro analysiert, Opus 4.5 erstellt Loesungs-Auftrag
 
     Args:
         fehler_text: Fehler-Text vom User
@@ -33,7 +33,7 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD") -> di
         }
     """
 
-    # 1. Prüfe Fehler-Datenbank
+    # 1. Pruefe Fehler-Datenbank
     bekannter_fehler = search_fehler(fehler_text)
 
     if bekannter_fehler:
@@ -56,21 +56,21 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD") -> di
         # Gemini 3 Pro analysiert den Fehler
         analyse = _analyze_with_gemini(fehler_text)
 
-        # Opus 4.5 erstellt Lösungs-Auftrag
+        # Opus 4.5 erstellt Loesungs-Auftrag
         auftrag = _create_auftrag_with_opus(fehler_text, analyse, projekt_name)
 
         # Fehler in Datenbank speichern
         fehler_id = save_fehler(
             muster=analyse.get('muster', fehler_text[:100]),
             kategorie=analyse.get('kategorie', 'unknown'),
-            loesung=analyse.get('loesung', 'Keine Lösung gefunden')
+            loesung=analyse.get('loesung', 'Keine Loesung gefunden')
         )
 
         return {
             'bekannt': False,
             'kategorie': analyse.get('kategorie', 'unknown'),
             'ursache': analyse.get('ursache', 'Unbekannt'),
-            'loesung': analyse.get('loesung', 'Keine Lösung gefunden'),
+            'loesung': analyse.get('loesung', 'Keine Loesung gefunden'),
             'auftrag': auftrag,
             'fehler_id': fehler_id,
             'erfolgsrate': 100,
@@ -103,18 +103,18 @@ def _analyze_with_gemini(fehler_text: str) -> dict:
     """
     client = get_client()
 
-    prompt = f"""Du bist ein Fehler-Analyst für Software-Entwicklung.
+    prompt = f"""Du bist ein Fehler-Analyst fuer Software-Entwicklung.
 
-Analysiere diesen Fehler und gib zurück:
+Analysiere diesen Fehler und gib zurueck:
 1. Kategorie (python, npm, permission, database, network, syntax, config, etc.)
-2. Ursache (kurz und präzise)
-3. Lösung (Schritt für Schritt)
-4. Muster (für zukünftige Erkennung, z.B. "ModuleNotFoundError", "EACCES", etc.)
+2. Ursache (kurz und praezise)
+3. Loesung (Schritt fuer Schritt)
+4. Muster (fuer zukuenftige Erkennung, z.B. "ModuleNotFoundError", "EACCES", etc.)
 
 Fehler-Text:
 {fehler_text}
 
-Antworte NUR mit einem JSON-Objekt (keine Erklärungen):
+Antworte NUR mit einem JSON-Objekt (keine Erklaerungen):
 {{"kategorie": "...", "ursache": "...", "loesung": "...", "muster": "..."}}"""
 
     messages = [{"role": "user", "content": prompt}]
@@ -140,7 +140,7 @@ Antworte NUR mit einem JSON-Objekt (keine Erklärungen):
 
 def _create_auftrag_with_opus(fehler_text: str, analyse: dict, projekt_name: str) -> str:
     """
-    Erstellt Lösungs-Auftrag mit Opus 4.5
+    Erstellt Loesungs-Auftrag mit Opus 4.5
 
     Args:
         fehler_text: Original Fehler-Text
@@ -148,11 +148,11 @@ def _create_auftrag_with_opus(fehler_text: str, analyse: dict, projekt_name: str
         projekt_name: Projektname
 
     Returns:
-        str: Formatierter Lösungs-Auftrag
+        str: Formatierter Loesungs-Auftrag
     """
     client = get_client()
 
-    prompt = f"""Erstelle einen kurzen, präzisen Lösungs-Auftrag für Claude Code.
+    prompt = f"""Erstelle einen kurzen, praezisen Loesungs-Auftrag fuer Claude Code.
 
 FEHLER:
 {fehler_text}
@@ -160,28 +160,28 @@ FEHLER:
 ANALYSE:
 - Kategorie: {analyse.get('kategorie', 'unknown')}
 - Ursache: {analyse.get('ursache', 'Unbekannt')}
-- Lösung: {analyse.get('loesung', 'Keine')}
+- Loesung: {analyse.get('loesung', 'Keine')}
 
 Erstelle einen Auftrag im folgenden Format:
 
 ═══════════════════════════════════════════════════════════════
-🔧 FEHLER-LÖSUNG
+🔧 FEHLER-LOeSUNG
 ═══════════════════════════════════════════════════════════════
 
 📋 PROBLEM
 [Kurze Beschreibung des Problems]
 
-📋 LÖSUNG
-[Nummerierte Schritte zur Lösung]
+📋 LOeSUNG
+[Nummerierte Schritte zur Loesung]
 
 📋 BEFEHLE
 ```bash
-[Konkrete Befehle zum Ausführen]
+[Konkrete Befehle zum Ausfuehren]
 ```
 
 ═══════════════════════════════════════════════════════════════
 
-Halte es kurz und präzise. Nur das Nötigste."""
+Halte es kurz und praezise. Nur das Noetigste."""
 
     messages = [{"role": "user", "content": prompt}]
 
@@ -201,13 +201,13 @@ def _create_quick_auftrag(fehler: dict) -> str:
         str: Formatierter Auftrag
     """
     return f"""═══════════════════════════════════════════════════════════════
-🔧 BEKANNTE LÖSUNG (#{fehler['id']})
+🔧 BEKANNTE LOeSUNG (#{fehler['id']})
 ═══════════════════════════════════════════════════════════════
 
 📋 KATEGORIE
 {fehler.get('kategorie', 'Unbekannt')}
 
-📋 LÖSUNG
+📋 LOeSUNG
 {fehler['loesung']}
 
 📊 STATISTIK
@@ -245,22 +245,22 @@ def _extract_kategorie(fehler_text: str) -> str:
 
 def _get_fallback_loesung(fehler_text: str) -> str:
     """
-    Generiert Fallback-Lösung basierend auf Fehler-Kategorie
+    Generiert Fallback-Loesung basierend auf Fehler-Kategorie
     """
     kategorie = _extract_kategorie(fehler_text)
 
     fallbacks = {
-        'python': '1. Prüfe die Python-Version (python --version)\n2. Installiere fehlende Module (pip install <modul>)\n3. Prüfe Imports und Pfade',
-        'npm': '1. Lösche node_modules und package-lock.json\n2. Führe npm install aus\n3. Prüfe Node.js Version (node --version)',
-        'permission': '1. Prüfe Datei-Berechtigungen (ls -la)\n2. Nutze sudo falls nötig\n3. Prüfe Benutzer und Gruppe',
-        'database': '1. Prüfe Datenbank-Verbindung\n2. Prüfe SQL-Syntax\n3. Prüfe ob Tabellen existieren',
-        'network': '1. Prüfe Netzwerk-Verbindung\n2. Prüfe Firewall-Einstellungen\n3. Prüfe ob Service läuft',
-        'syntax': '1. Prüfe Syntax des Codes\n2. Suche nach fehlenden Klammern/Anführungszeichen\n3. Prüfe Einrückung (bei Python)',
-        'config': '1. Prüfe .env Datei\n2. Prüfe Umgebungsvariablen\n3. Prüfe Konfigurationsdateien',
-        'git': '1. Prüfe git status\n2. Löse Konflikte falls vorhanden\n3. Prüfe remote URL'
+        'python': '1. Pruefe die Python-Version (python --version)\n2. Installiere fehlende Module (pip install <modul>)\n3. Pruefe Imports und Pfade',
+        'npm': '1. Loesche node_modules und package-lock.json\n2. Fuehre npm install aus\n3. Pruefe Node.js Version (node --version)',
+        'permission': '1. Pruefe Datei-Berechtigungen (ls -la)\n2. Nutze sudo falls noetig\n3. Pruefe Benutzer und Gruppe',
+        'database': '1. Pruefe Datenbank-Verbindung\n2. Pruefe SQL-Syntax\n3. Pruefe ob Tabellen existieren',
+        'network': '1. Pruefe Netzwerk-Verbindung\n2. Pruefe Firewall-Einstellungen\n3. Pruefe ob Service laeuft',
+        'syntax': '1. Pruefe Syntax des Codes\n2. Suche nach fehlenden Klammern/Anfuehrungszeichen\n3. Pruefe Einrueckung (bei Python)',
+        'config': '1. Pruefe .env Datei\n2. Pruefe Umgebungsvariablen\n3. Pruefe Konfigurationsdateien',
+        'git': '1. Pruefe git status\n2. Loese Konflikte falls vorhanden\n3. Pruefe remote URL'
     }
 
-    return fallbacks.get(kategorie, '1. Analysiere den Fehler genauer\n2. Suche online nach der Fehlermeldung\n3. Prüfe die Dokumentation')
+    return fallbacks.get(kategorie, '1. Analysiere den Fehler genauer\n2. Suche online nach der Fehlermeldung\n3. Pruefe die Dokumentation')
 
 
 def _get_fallback_auftrag(fehler_text: str) -> str:
@@ -282,6 +282,6 @@ def _get_fallback_auftrag(fehler_text: str) -> str:
 📋 FEHLER-TEXT
 {fehler_text[:500]}{'...' if len(fehler_text) > 500 else ''}
 
-⚠️ Hinweis: KI-Analyse war nicht möglich. Bitte manuell prüfen.
+⚠️ Hinweis: KI-Analyse war nicht moeglich. Bitte manuell pruefen.
 
 ═══════════════════════════════════════════════════════════════"""

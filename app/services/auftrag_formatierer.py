@@ -1,6 +1,6 @@
 """
 NEXUS OVERLORD v2.0 - Auftrag Formatierer (Auftrag 4.2)
-Formatiert Aufträge für Claude Code mit Sonnet 4.5
+Formatiert Auftraege fuer Claude Code mit Sonnet 4.5
 """
 
 from app.services.openrouter import get_client
@@ -9,7 +9,7 @@ from datetime import datetime
 
 def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
     """
-    Formatiert einen Auftrag als Copy-Paste-fertig für Claude Code.
+    Formatiert einen Auftrag als Copy-Paste-fertig fuer Claude Code.
 
     Args:
         auftrag: Auftrag-Daten aus Datenbank
@@ -62,7 +62,7 @@ def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
 
     # Auftrag-Text zusammenbauen
     formatted = f"""═══════════════════════════════════════════════════════════════
-🔷 NEXUS OVERLORD - AUFTRAG FÜR CLAUDE CODE
+🔷 NEXUS OVERLORD - AUFTRAG FUeR CLAUDE CODE
 ═══════════════════════════════════════════════════════════════
 
 📌 PROJEKT-KONTEXT
@@ -80,7 +80,7 @@ def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
 📋 AUFTRAG {phase_nummer}.{auftrag_nummer} - {auftrag.get('name', 'Unbenannter Auftrag').upper()}
 
 📝 BESCHREIBUNG
-{auftrag.get('beschreibung', 'Keine Beschreibung verfügbar.')}
+{auftrag.get('beschreibung', 'Keine Beschreibung verfuegbar.')}
 
 📝 SCHRITTE
 {schritte_text}
@@ -105,7 +105,7 @@ def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
    git commit -m "[{phase_nummer}.{auftrag_nummer}] {auftrag.get('name', 'Auftrag')}"
    git push origin main
 
-2. ✅ ÜBERGABE-DATEI SCHREIBEN
+2. ✅ UeBERGABE-DATEI SCHREIBEN
    Pfad: /projekt/uebergaben/{datetime.now().strftime('%Y-%m-%d')}_auftrag-{phase_nummer}-{auftrag_nummer}.md
 
 3. ✅ STATUS MELDEN
@@ -113,8 +113,8 @@ def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
    "✅ AUFTRAG {phase_nummer}.{auftrag_nummer} ERLEDIGT
    - Gemacht: [Kurzbeschreibung]
    - GitHub: ✅ gepusht
-   - Übergabe: /projekt/uebergaben/...
-   - Nächster: [Nächster Auftrag]"
+   - Uebergabe: /projekt/uebergaben/...
+   - Naechster: [Naechster Auftrag]"
 
 4. ✅ SERVER DEPLOYMENT
    cd /home/nexus/nexus-overlord
@@ -126,7 +126,7 @@ def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
 ═══════════════════════════════════════════════════════════════
 
 ✅ ERFOLGS-KRITERIEN
-{erfolg_text if erfolg_text else '- [ ] Auftrag vollständig umgesetzt\n- [ ] Keine Fehler beim Testen\n- [ ] GitHub gepusht\n- [ ] Server deployed'}
+{erfolg_text if erfolg_text else '- [ ] Auftrag vollstaendig umgesetzt\n- [ ] Keine Fehler beim Testen\n- [ ] GitHub gepusht\n- [ ] Server deployed'}
 
 ═══════════════════════════════════════════════════════════════"""
 
@@ -135,7 +135,7 @@ def format_auftrag_for_claude(auftrag: dict, projekt: dict) -> str:
 
 def format_auftrag_with_ai(auftrag: dict, projekt: dict) -> str:
     """
-    Formatiert einen Auftrag mit Sonnet 4.5 für bessere Qualität.
+    Formatiert einen Auftrag mit Sonnet 4.5 fuer bessere Qualitaet.
     Fallback auf lokale Formatierung bei API-Fehlern.
 
     Args:
@@ -149,13 +149,13 @@ def format_auftrag_with_ai(auftrag: dict, projekt: dict) -> str:
     try:
         client = get_client()
 
-        # Basis-Daten für den Prompt
+        # Basis-Daten fuer den Prompt
         projekt_name = projekt.get('name', 'Unbekanntes Projekt')
         phase_nummer = auftrag.get('phase_nummer', 1)
         auftrag_nummer = auftrag.get('nummer', 1)
         total_phasen = auftrag.get('total_phasen', 7)
 
-        prompt = f"""Du bist ein Auftrags-Formatierer für Claude Code.
+        prompt = f"""Du bist ein Auftrags-Formatierer fuer Claude Code.
 
 Erstelle einen professionellen, copy-paste-fertigen Auftrag basierend auf diesen Daten:
 
@@ -182,11 +182,11 @@ Formatiere den Auftrag im NEXUS OVERLORD Format mit:
 - Header mit Projekt-Kontext
 - Aktueller Stand (Phase X von Y)
 - Auftrag-Details mit Beschreibung und Schritten
-- Pflichten (GitHub Push, Übergabe-Datei, Status melden, Server Deploy)
+- Pflichten (GitHub Push, Uebergabe-Datei, Status melden, Server Deploy)
 - Erfolgs-Kriterien als Checkliste
 
-Verwende ═══ als Trennlinien und Emojis für Überschriften.
-Der Output soll direkt in Claude Code eingefügt werden können."""
+Verwende ═══ als Trennlinien und Emojis fuer Ueberschriften.
+Der Output soll direkt in Claude Code eingefuegt werden koennen."""
 
         messages = [
             {"role": "user", "content": prompt}
@@ -204,15 +204,15 @@ Der Output soll direkt in Claude Code eingefügt werden können."""
 
 def get_no_auftraege_message() -> str:
     """
-    Gibt eine Nachricht zurück wenn keine offenen Aufträge vorhanden sind.
+    Gibt eine Nachricht zurueck wenn keine offenen Auftraege vorhanden sind.
     """
-    return """🎉 ALLE AUFTRÄGE ERLEDIGT!
+    return """🎉 ALLE AUFTRAeGE ERLEDIGT!
 
-Es gibt keine offenen Aufträge mehr für dieses Projekt.
+Es gibt keine offenen Auftraege mehr fuer dieses Projekt.
 
-Mögliche nächste Schritte:
+Moegliche naechste Schritte:
 - Projekt als "fertig" markieren
 - Neues Projekt erstellen
-- Bestehende Aufträge überprüfen
+- Bestehende Auftraege ueberpruefen
 
-Falls Aufträge als "in_arbeit" stehen, müssen diese erst abgeschlossen werden."""
+Falls Auftraege als "in_arbeit" stehen, muessen diese erst abgeschlossen werden."""

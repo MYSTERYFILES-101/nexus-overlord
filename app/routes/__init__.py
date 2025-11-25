@@ -1,7 +1,7 @@
 """
 NEXUS OVERLORD v2.0 - Routes Package
 
-Blueprint-Registrierung für modulare Architektur.
+Blueprint-Registrierung fuer modulare Architektur.
 """
 
 from flask import Flask

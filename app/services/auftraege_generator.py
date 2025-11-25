@@ -1,16 +1,16 @@
 """
-NEXUS OVERLORD v2.0 - Aufträge Generator
+NEXUS OVERLORD v2.0 - Auftraege Generator
 
-Opus 4.5 erstellt konkrete Aufträge pro Phase mit Regelwerk.
+Opus 4.5 erstellt konkrete Auftraege pro Phase mit Regelwerk.
 
-Jeder Auftrag enthält:
+Jeder Auftrag enthaelt:
     - Phase-Nummer und Auftrags-Nummer (z.B. 1.1, 1.2, 2.1)
     - Name und Beschreibung
     - Konkrete Schritte
     - Betroffene Dateien
     - Technische Details
     - Erfolgs-Kriterien
-    - Regelwerk (Commit-Message, Übergabe-Pfad, Pflichten)
+    - Regelwerk (Commit-Message, Uebergabe-Pfad, Pflichten)
 """
 
 import json
@@ -25,11 +25,11 @@ from app.utils.json_extractor import extract_json
 logger = logging.getLogger(__name__)
 
 
-# Prompt-Template für Auftrags-Generierung
-AUFTRAEGE_PROMPT = """Du bist ein erfahrener Software-Entwickler und Projekt-Manager. Erstelle für jede Phase konkrete Aufträge, die Claude Code als KI-Entwickler ausführen kann.
+# Prompt-Template fuer Auftrags-Generierung
+AUFTRAEGE_PROMPT = """Du bist ein erfahrener Software-Entwickler und Projekt-Manager. Erstelle fuer jede Phase konkrete Auftraege, die Claude Code als KI-Entwickler ausfuehren kann.
 
 KONTEXT:
-Du planst Aufträge für ein Software-Projekt. Claude Code wird diese Aufträge nacheinander abarbeiten.
+Du planst Auftraege fuer ein Software-Projekt. Claude Code wird diese Auftraege nacheinander abarbeiten.
 
 ENTERPRISE-PLAN:
 {enterprise_plan}
@@ -38,22 +38,22 @@ PHASEN:
 {phasen_json}
 
 AUFGABE:
-Für jede Phase erstelle 2-5 konkrete, ausführbare Aufträge mit:
+Fuer jede Phase erstelle 2-5 konkrete, ausfuehrbare Auftraege mit:
 
 1. **Auftragsnummer**: Format "X.Y" (Phase.Auftrag, z.B. "1.1", "1.2", "2.1")
-2. **Name**: Kurzer, prägnanter Name (max 4 Wörter)
-3. **Beschreibung**: Was soll gemacht werden (1-2 Sätze)
-4. **Schritte**: 3-6 konkrete Schritte zum Ausführen
-5. **Dateien**: Welche Dateien werden erstellt/geändert
+2. **Name**: Kurzer, praegnanter Name (max 4 Woerter)
+3. **Beschreibung**: Was soll gemacht werden (1-2 Saetze)
+4. **Schritte**: 3-6 konkrete Schritte zum Ausfuehren
+5. **Dateien**: Welche Dateien werden erstellt/geaendert
 6. **Technische Details**: Frameworks, Libraries, Patterns
 7. **Erfolgs-Kriterien**: Wie wird Erfolg gemessen
-8. **Regelwerk**: Anweisungen für Claude Code
+8. **Regelwerk**: Anweisungen fuer Claude Code
 
 WICHTIG:
-- Aufträge müssen in logischer Reihenfolge sein
-- Jeder Auftrag muss eigenständig ausführbar sein
-- Erste Aufträge einer Phase: Setup/Grundlagen
-- Letzte Aufträge einer Phase: Tests/Integration
+- Auftraege muessen in logischer Reihenfolge sein
+- Jeder Auftrag muss eigenstaendig ausfuehrbar sein
+- Erste Auftraege einer Phase: Setup/Grundlagen
+- Letzte Auftraege einer Phase: Tests/Integration
 - Realistische Schritte (nicht zu abstrakt)
 - Konkrete Dateinamen und Pfade
 
@@ -66,7 +66,7 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
             "name": "Setup & Dependencies",
             "beschreibung": "Grundlegende Projektstruktur und Dependencies installieren",
             "schritte": [
-                "requirements.txt erstellen mit benötigten Libraries",
+                "requirements.txt erstellen mit benoetigten Libraries",
                 "Virtuelle Environment aktivieren",
                 "Dependencies installieren (pip install -r requirements.txt)",
                 "Basis-Ordnerstruktur erstellen"
@@ -84,15 +84,15 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
                 "requirements.txt existiert",
                 "Alle Dependencies installiert",
                 "Ordnerstruktur angelegt",
-                "README mit Projekt-Übersicht"
+                "README mit Projekt-Uebersicht"
             ],
             "regelwerk": {{
                 "commit_message": "[1.1] Setup & Dependencies",
                 "uebergabe_pfad": "/projekt/uebergaben/YYYY-MM-DD_HH-MM_auftrag-1-1.md",
                 "pflichten": [
                     "GitHub Commit erstellen",
-                    "GitHub Push durchführen",
-                    "Übergabe-Datei schreiben mit Details",
+                    "GitHub Push durchfuehren",
+                    "Uebergabe-Datei schreiben mit Details",
                     "Status melden an User"
                 ]
             }}
@@ -101,12 +101,12 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
             "phase_nummer": 1,
             "auftrag_nummer": "1.2",
             "name": "Database Schema",
-            "beschreibung": "SQLite Datenbank-Schema erstellen mit allen benötigten Tabellen",
+            "beschreibung": "SQLite Datenbank-Schema erstellen mit allen benoetigten Tabellen",
             "schritte": [
                 "SQL-Schema-Datei erstellen",
                 "Tabellen mit Feldern definieren",
                 "Indizes und Constraints festlegen",
-                "Init-Script für DB-Setup"
+                "Init-Script fuer DB-Setup"
             ],
             "dateien": [
                 {{"pfad": "database/schema.sql", "aktion": "neu"}},
@@ -121,15 +121,15 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
                 "Schema-Datei kompiliert ohne Fehler",
                 "Alle Tabellen erstellt",
                 "Indizes angelegt",
-                "Init-Script läuft durch"
+                "Init-Script laeuft durch"
             ],
             "regelwerk": {{
                 "commit_message": "[1.2] Database Schema",
                 "uebergabe_pfad": "/projekt/uebergaben/YYYY-MM-DD_HH-MM_auftrag-1-2.md",
                 "pflichten": [
                     "GitHub Commit erstellen",
-                    "GitHub Push durchführen",
-                    "Übergabe-Datei schreiben",
+                    "GitHub Push durchfuehren",
+                    "Uebergabe-Datei schreiben",
                     "Status melden"
                 ]
             }}
@@ -137,16 +137,16 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
     ],
     "gesamt_auftraege": 12,
     "geschaetzte_dauer": "10-15 Stunden",
-    "hinweise": "Zusätzliche Hinweise zur Umsetzung"
+    "hinweise": "Zusaetzliche Hinweise zur Umsetzung"
 }}
 
-HINWEIS: Erstelle für JEDE Phase mindestens 2 und maximal 5 Aufträge. Passe die Anzahl an die Komplexität der Phase an.
+HINWEIS: Erstelle fuer JEDE Phase mindestens 2 und maximal 5 Auftraege. Passe die Anzahl an die Komplexitaet der Phase an.
 """
 
 
 def generate_auftraege(phasen_data: dict[str, Any], enterprise_plan: str) -> dict[str, Any]:
     """
-    Generiert Aufträge mit Opus 4.5.
+    Generiert Auftraege mit Opus 4.5.
 
     Args:
         phasen_data: Phasen-Struktur aus dem Phasen-Generator
@@ -154,13 +154,13 @@ def generate_auftraege(phasen_data: dict[str, Any], enterprise_plan: str) -> dic
 
     Returns:
         dict: Auftrags-Struktur mit:
-            - auftraege: Liste der Aufträge
-            - gesamt_auftraege: Anzahl der Aufträge
-            - geschaetzte_dauer: Geschätzte Gesamtdauer
-            - hinweise: Zusätzliche Hinweise
+            - auftraege: Liste der Auftraege
+            - gesamt_auftraege: Anzahl der Auftraege
+            - geschaetzte_dauer: Geschaetzte Gesamtdauer
+            - hinweise: Zusaetzliche Hinweise
 
     Raises:
-        ValueError: Bei ungültiger JSON-Antwort oder Validierungsfehler
+        ValueError: Bei ungueltiger JSON-Antwort oder Validierungsfehler
         Exception: Bei API-Fehler
     """
     logger.info("Starte Auftrags-Generierung")
@@ -170,7 +170,7 @@ def generate_auftraege(phasen_data: dict[str, Any], enterprise_plan: str) -> dic
     # Phasen als JSON formatieren
     phasen_json = json.dumps(phasen_data, indent=2, ensure_ascii=False)
 
-    # Prompt mit Daten füllen
+    # Prompt mit Daten fuellen
     prompt = AUFTRAEGE_PROMPT.format(
         enterprise_plan=enterprise_plan,
         phasen_json=phasen_json
@@ -188,16 +188,16 @@ def generate_auftraege(phasen_data: dict[str, Any], enterprise_plan: str) -> dic
     parsed = extract_json(response)
 
     if not parsed or "auftraege" not in parsed:
-        logger.error("Keine gültigen Aufträge in der Antwort gefunden")
+        logger.error("Keine gueltigen Auftraege in der Antwort gefunden")
         raise ValueError(
-            "Konnte keine gültigen Aufträge aus der KI-Antwort extrahieren.\n"
+            "Konnte keine gueltigen Auftraege aus der KI-Antwort extrahieren.\n"
             f"Antwort (erste 500 Zeichen):\n{response[:500]}"
         )
 
     # Validierung
     validate_auftraege(parsed, phasen_data)
 
-    logger.info(f"Auftrags-Generierung erfolgreich: {len(parsed['auftraege'])} Aufträge")
+    logger.info(f"Auftrags-Generierung erfolgreich: {len(parsed['auftraege'])} Auftraege")
     return parsed
 
 
@@ -210,7 +210,7 @@ def validate_auftraege(data: dict[str, Any], phasen_data: dict[str, Any]) -> Non
         phasen_data: Original Phasen-Daten zur Validierung
 
     Raises:
-        ValueError: Bei ungültiger Struktur
+        ValueError: Bei ungueltiger Struktur
     """
     # Required keys
     if "auftraege" not in data:
@@ -236,7 +236,7 @@ def validate_auftraege(data: dict[str, Any], phasen_data: dict[str, Any]) -> Non
 
         for field in required:
             if field not in auftrag:
-                # Füge Standardwerte hinzu statt Fehler zu werfen
+                # Fuege Standardwerte hinzu statt Fehler zu werfen
                 if field == "schritte":
                     auftrag["schritte"] = []
                     logger.warning(f"Auftrag {i+1}: 'schritte' fehlt, setze auf []")
@@ -264,7 +264,7 @@ def validate_auftraege(data: dict[str, Any], phasen_data: dict[str, Any]) -> Non
             logger.warning(f"Auftrag {i+1}: Phase-Nummer {auftrag['phase_nummer']} korrigiert")
             auftrag["phase_nummer"] = min(auftrag["phase_nummer"], anzahl_phasen)
 
-        # Auftragsnummer-Format prüfen (X.Y)
+        # Auftragsnummer-Format pruefen (X.Y)
         if not re.match(r'^\d+\.\d+$', str(auftrag["auftrag_nummer"])):
             # Korrigiere das Format
             phase_nr = auftrag["phase_nummer"]
@@ -292,24 +292,24 @@ def validate_auftraege(data: dict[str, Any], phasen_data: dict[str, Any]) -> Non
 
 def format_auftraege_for_display(data: dict[str, Any]) -> str:
     """
-    Formatiert Aufträge für die Anzeige (Markdown).
+    Formatiert Auftraege fuer die Anzeige (Markdown).
 
     Args:
         data: Auftrags-Daten
 
     Returns:
-        str: Markdown-formatierte Aufträge
+        str: Markdown-formatierte Auftraege
     """
     lines = []
-    lines.append(f"# Auftrags-Übersicht ({data.get('gesamt_auftraege', len(data['auftraege']))} Aufträge)\n")
-    lines.append(f"**Geschätzte Gesamtdauer:** {data.get('geschaetzte_dauer', 'N/A')}\n")
+    lines.append(f"# Auftrags-Uebersicht ({data.get('gesamt_auftraege', len(data['auftraege']))} Auftraege)\n")
+    lines.append(f"**Geschaetzte Gesamtdauer:** {data.get('geschaetzte_dauer', 'N/A')}\n")
 
     if "hinweise" in data:
         lines.append(f"**Hinweise:** {data['hinweise']}\n")
 
     lines.append("---\n")
 
-    # Gruppiere Aufträge nach Phase
+    # Gruppiere Auftraege nach Phase
     auftraege_by_phase: dict[int, list] = {}
     for auftrag in data["auftraege"]:
         phase_nr = auftrag["phase_nummer"]

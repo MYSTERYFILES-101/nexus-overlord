@@ -48,7 +48,7 @@ def projekt_steuern(projekt_id: int):
 @steuern_bp.route('/projekt/<int:projekt_id>/auftrag', methods=['POST'])
 def projekt_auftrag(projekt_id: int):
     """
-    Holt nächsten offenen Auftrag (Auftrag 4.2).
+    Holt naechsten offenen Auftrag (Auftrag 4.2).
 
     Wird per HTMX aufgerufen.
     """
@@ -94,7 +94,7 @@ def auftrag_status_update(projekt_id: int, auftrag_id: int):
     status = request.form.get('status', 'fertig')
 
     if status not in ['offen', 'in_arbeit', 'fertig', 'fehler']:
-        return jsonify({'success': False, 'error': 'Ungültiger Status'}), 400
+        return jsonify({'success': False, 'error': 'Ungueltiger Status'}), 400
 
     success = update_auftrag_status(auftrag_id, status)
 
@@ -107,9 +107,9 @@ def auftrag_status_update(projekt_id: int, auftrag_id: int):
 @steuern_bp.route('/projekt/<int:projekt_id>/fehler', methods=['POST'])
 def projekt_fehler(projekt_id: int):
     """
-    Analysiert einen Fehler und gibt Lösung zurück (Auftrag 4.3).
+    Analysiert einen Fehler und gibt Loesung zurueck (Auftrag 4.3).
 
-    Prüft DB nach bekannten Fehlern, sonst KI-Analyse.
+    Prueft DB nach bekannten Fehlern, sonst KI-Analyse.
     """
     from app.services.database import get_projekt, save_chat_message
     from app.services.fehler_analyzer import analyze_fehler
@@ -143,7 +143,7 @@ def projekt_fehler(projekt_id: int):
 
 @steuern_bp.route('/projekt/<int:projekt_id>/fehler/<int:fehler_id>/feedback', methods=['POST'])
 def fehler_feedback(projekt_id: int, fehler_id: int):
-    """Feedback zur Fehler-Lösung (Auftrag 4.3)."""
+    """Feedback zur Fehler-Loesung (Auftrag 4.3)."""
     from app.services.database import update_fehler_erfolgsrate
 
     erfolg = request.form.get('erfolg', 'true').lower() == 'true'

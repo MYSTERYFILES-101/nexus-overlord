@@ -38,7 +38,7 @@ def analyze_projekt(projekt_id: int) -> dict:
             'zusammenfassung': None
         }
 
-    # 2. Zusammenfassung erstellen (lokal, ohne KI für Schnelligkeit)
+    # 2. Zusammenfassung erstellen (lokal, ohne KI fuer Schnelligkeit)
     # KI-Analyse kann optional aktiviert werden
     zusammenfassung = _create_zusammenfassung(daten)
 
@@ -146,7 +146,7 @@ Du bist in Phase {aktuelle_phase.get('nummer', '?')} von {total_phasen}: {aktuel
 
 [{progress_bar}] {fortschritt}%
 
-{erledigte} von {total_auftraege} Aufträgen erledigt
+{erledigte} von {total_auftraege} Auftraegen erledigt
 """
 
     # In Arbeit
@@ -159,8 +159,8 @@ Du bist in Phase {aktuelle_phase.get('nummer', '?')} von {total_phasen}: {aktuel
         for auftrag in letzte_erledigte[:3]:
             zusammenfassung += f"• {auftrag.get('phase_nummer', '?')}.{auftrag.get('nummer', '?')} - {auftrag.get('name', '')}\n"
 
-    # Nächster Schritt
-    zusammenfassung += "\n───────────────────────────────\n\n➡️ NÄCHSTER SCHRITT\n\n"
+    # Naechster Schritt
+    zusammenfassung += "\n───────────────────────────────\n\n➡️ NAeCHSTER SCHRITT\n\n"
 
     if aktueller_auftrag:
         zusammenfassung += f"Arbeite an: {aktueller_auftrag.get('phase_nummer', '?')}.{aktueller_auftrag.get('nummer', '?')} - {aktueller_auftrag.get('name', 'Auftrag')}\n"
@@ -172,12 +172,12 @@ Du bist in Phase {aktuelle_phase.get('nummer', '?')} von {total_phasen}: {aktuel
                 beschreibung = beschreibung[:200] + '...'
             zusammenfassung += f"\n{beschreibung}\n"
 
-        zusammenfassung += "\n💡 Tipp: Klicke auf 'Auftrag' um den vollständigen Auftrag zu laden.\n"
+        zusammenfassung += "\n💡 Tipp: Klicke auf 'Auftrag' um den vollstaendigen Auftrag zu laden.\n"
     else:
         if fortschritt >= 100:
-            zusammenfassung += "🎉 Alle Aufträge erledigt! Das Projekt ist abgeschlossen.\n"
+            zusammenfassung += "🎉 Alle Auftraege erledigt! Das Projekt ist abgeschlossen.\n"
         else:
-            zusammenfassung += "Kein offener Auftrag gefunden. Prüfe die Phasen-Übersicht.\n"
+            zusammenfassung += "Kein offener Auftrag gefunden. Pruefe die Phasen-Uebersicht.\n"
 
     # Hinweise
     hinweise = []
@@ -186,13 +186,13 @@ Du bist in Phase {aktuelle_phase.get('nummer', '?')} von {total_phasen}: {aktuel
         hinweise.append(f"⚠️ {offene_fehler} Fehler in den letzten 7 Tagen gemeldet")
 
     if daten.get('in_arbeit_auftraege', 0) > 1:
-        hinweise.append("⚠️ Mehrere Aufträge gleichzeitig in Arbeit - besser nacheinander abarbeiten")
+        hinweise.append("⚠️ Mehrere Auftraege gleichzeitig in Arbeit - besser nacheinander abarbeiten")
 
     if fortschritt < 20 and total_auftraege > 0:
         hinweise.append("💪 Du bist am Anfang - ein Schritt nach dem anderen!")
 
     if fortschritt >= 80 and fortschritt < 100:
-        hinweise.append("🎯 Fast geschafft! Nur noch wenige Aufträge.")
+        hinweise.append("🎯 Fast geschafft! Nur noch wenige Auftraege.")
 
     if hinweise:
         zusammenfassung += "\n───────────────────────────────\n\n⚠️ HINWEISE\n\n"
@@ -215,7 +215,7 @@ def _analyze_with_gemini(client, daten: dict) -> str:
         status_icon = "✅" if phase.get('erledigte', 0) == phase.get('total_auftraege', 0) and phase.get('total_auftraege', 0) > 0 else "🔄" if phase.get('in_arbeit', 0) > 0 else "⏳"
         phasen_text += f"{status_icon} Phase {phase.get('nummer', '?')}: {phase.get('name', '')} - {phase.get('erledigte', 0)}/{phase.get('total_auftraege', 0)} erledigt\n"
 
-    prompt = f"""Analysiere diesen Projekt-Status kurz und präzise:
+    prompt = f"""Analysiere diesen Projekt-Status kurz und praezise:
 
 Projekt: {projekt.get('name', 'Unbekannt')}
 Status: {projekt.get('status', 'Unbekannt')}
@@ -224,11 +224,11 @@ Fortschritt: {daten.get('fortschritt', 0)}%
 Phasen:
 {phasen_text}
 
-Erledigt: {daten.get('erledigte_auftraege', 0)}/{daten.get('total_auftraege', 0)} Aufträge
+Erledigt: {daten.get('erledigte_auftraege', 0)}/{daten.get('total_auftraege', 0)} Auftraege
 Offene Fehler: {daten.get('offene_fehler', 0)}
 
-Gib eine kurze Einschätzung (2-3 Sätze):
-1. Wie gut läuft das Projekt?
+Gib eine kurze Einschaetzung (2-3 Saetze):
+1. Wie gut laeuft das Projekt?
 2. Gibt es Probleme oder Blockaden?
 3. Empfehlung?"""
 
@@ -240,7 +240,7 @@ def _summarize_with_opus(client, daten: dict, analyse: str) -> str:
     """
     Opus 4.5 erstellt lesbare Zusammenfassung.
     """
-    prompt = f"""Erstelle eine kurze Status-Übersicht basierend auf:
+    prompt = f"""Erstelle eine kurze Status-Uebersicht basierend auf:
 
 Analyse: {analyse}
 
@@ -255,7 +255,7 @@ Formatiere als:
 📊 FORTSCHRITT
 [Progress-Bar und Zahlen]
 
-➡️ NÄCHSTER SCHRITT
+➡️ NAeCHSTER SCHRITT
 [Konkrete Empfehlung]
 
 Halte es kurz und motivierend."""

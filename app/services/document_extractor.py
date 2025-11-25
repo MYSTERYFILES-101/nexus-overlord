@@ -1,7 +1,7 @@
 """
 NEXUS OVERLORD v2.0 - Document Extractor
 
-Extrahiert Text aus PDF- und DOCX-Dateien für Projekt-Upload.
+Extrahiert Text aus PDF- und DOCX-Dateien fuer Projekt-Upload.
 """
 
 import logging
@@ -16,7 +16,7 @@ def extract_text_from_file(file: Any, filename: str) -> tuple[str, str | None]:
     """
     Extrahiert Text aus einer hochgeladenen Datei.
 
-    Unterstützte Formate:
+    Unterstuetzte Formate:
         - PDF (.pdf)
         - Word (.docx, .doc)
         - Text (.txt, .md)
@@ -38,7 +38,7 @@ def extract_text_from_file(file: Any, filename: str) -> tuple[str, str | None]:
         elif ext in ['txt', 'md']:
             return extract_txt_text(file)
         else:
-            return '', f'Nicht unterstütztes Format: .{ext}'
+            return '', f'Nicht unterstuetztes Format: .{ext}'
 
     except Exception as e:
         logger.error(f"Fehler beim Extrahieren aus {filename}: {e}")
@@ -59,7 +59,7 @@ def extract_pdf_text(file: Any) -> tuple[str, str | None]:
         import pdfplumber
     except ImportError:
         logger.warning("pdfplumber nicht installiert")
-        return '', 'PDF-Extraktion nicht verfügbar (pdfplumber fehlt)'
+        return '', 'PDF-Extraktion nicht verfuegbar (pdfplumber fehlt)'
 
     try:
         text_parts = []
@@ -73,7 +73,7 @@ def extract_pdf_text(file: Any) -> tuple[str, str | None]:
         text = '\n\n'.join(text_parts)
 
         if not text.strip():
-            return '', 'PDF enthält keinen extrahierbaren Text (evtl. gescanntes Dokument)'
+            return '', 'PDF enthaelt keinen extrahierbaren Text (evtl. gescanntes Dokument)'
 
         logger.info(f"PDF extrahiert: {len(text)} Zeichen aus {len(text_parts)} Seiten")
         return text, None
@@ -97,7 +97,7 @@ def extract_docx_text(file: Any) -> tuple[str, str | None]:
         from docx import Document
     except ImportError:
         logger.warning("python-docx nicht installiert")
-        return '', 'DOCX-Extraktion nicht verfügbar (python-docx fehlt)'
+        return '', 'DOCX-Extraktion nicht verfuegbar (python-docx fehlt)'
 
     try:
         doc = Document(file)
@@ -105,9 +105,9 @@ def extract_docx_text(file: Any) -> tuple[str, str | None]:
         text = '\n\n'.join(paragraphs)
 
         if not text.strip():
-            return '', 'DOCX enthält keinen extrahierbaren Text'
+            return '', 'DOCX enthaelt keinen extrahierbaren Text'
 
-        logger.info(f"DOCX extrahiert: {len(text)} Zeichen aus {len(paragraphs)} Absätzen")
+        logger.info(f"DOCX extrahiert: {len(text)} Zeichen aus {len(paragraphs)} Absaetzen")
         return text, None
 
     except Exception as e:
@@ -145,13 +145,13 @@ def extract_txt_text(file: Any) -> tuple[str, str | None]:
 
 def is_supported_format(filename: str) -> bool:
     """
-    Prüft ob das Dateiformat für Textextraktion unterstützt wird.
+    Prueft ob das Dateiformat fuer Textextraktion unterstuetzt wird.
 
     Args:
         filename: Dateiname
 
     Returns:
-        bool: True wenn unterstützt
+        bool: True wenn unterstuetzt
     """
     supported = {'pdf', 'docx', 'doc', 'txt', 'md'}
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
@@ -160,7 +160,7 @@ def is_supported_format(filename: str) -> bool:
 
 def get_supported_formats() -> list[str]:
     """
-    Gibt Liste der unterstützten Formate zurück.
+    Gibt Liste der unterstuetzten Formate zurueck.
 
     Returns:
         list: Liste der Dateiendungen

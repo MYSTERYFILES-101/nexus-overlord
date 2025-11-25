@@ -1,16 +1,16 @@
 """
-NEXUS OVERLORD v2.0 - Qualitätsprüfung
+NEXUS OVERLORD v2.0 - Qualitaetspruefung
 
-Gemini 3 Pro prüft generierte Aufträge auf Qualität.
+Gemini 3 Pro prueft generierte Auftraege auf Qualitaet.
 
-Prüfungskategorien:
-    - Vollständigkeit: Deckt der Plan alles ab?
-    - Reihenfolge: Sind Abhängigkeiten korrekt?
-    - Klarheit: Sind Schritte verständlich?
+Pruefungskategorien:
+    - Vollstaendigkeit: Deckt der Plan alles ab?
+    - Reihenfolge: Sind Abhaengigkeiten korrekt?
+    - Klarheit: Sind Schritte verstaendlich?
     - Dateien: Sind Pfade und Aktionen korrekt?
     - Regelwerk: Ist das Format konsistent?
-    - Lücken: Fehlt etwas Wichtiges?
-    - Duplikate: Gibt es Überschneidungen?
+    - Luecken: Fehlt etwas Wichtiges?
+    - Duplikate: Gibt es Ueberschneidungen?
 """
 
 import json
@@ -24,8 +24,8 @@ from app.utils.json_extractor import extract_json
 logger = logging.getLogger(__name__)
 
 
-# Prompt-Template für Qualitätsprüfung
-QUALITAET_PROMPT = """Du bist ein erfahrener QA-Manager und Software-Architekt. Prüfe die folgenden Aufträge auf Vollständigkeit und Qualität.
+# Prompt-Template fuer Qualitaetspruefung
+QUALITAET_PROMPT = """Du bist ein erfahrener QA-Manager und Software-Architekt. Pruefe die folgenden Auftraege auf Vollstaendigkeit und Qualitaet.
 
 ENTERPRISE-PLAN (Original):
 {enterprise_plan}
@@ -33,59 +33,59 @@ ENTERPRISE-PLAN (Original):
 PHASEN-STRUKTUR:
 {phasen_json}
 
-GENERIERTE AUFTRÄGE:
+GENERIERTE AUFTRAeGE:
 {auftraege_json}
 
 AUFGABE:
-Prüfe die Aufträge kritisch auf folgende Kategorien:
+Pruefe die Auftraege kritisch auf folgende Kategorien:
 
-1. **Vollständigkeit** (1-10)
-   - Decken die Aufträge den gesamten Enterprise-Plan ab?
-   - Sind alle Features/Komponenten berücksichtigt?
+1. **Vollstaendigkeit** (1-10)
+   - Decken die Auftraege den gesamten Enterprise-Plan ab?
+   - Sind alle Features/Komponenten beruecksichtigt?
    - Fehlt etwas Wichtiges?
 
 2. **Reihenfolge** (1-10)
-   - Sind Abhängigkeiten korrekt berücksichtigt?
+   - Sind Abhaengigkeiten korrekt beruecksichtigt?
    - Macht die Sequenz Sinn?
-   - Kann man so tatsächlich arbeiten?
+   - Kann man so tatsaechlich arbeiten?
 
 3. **Klarheit** (1-10)
-   - Sind die Schritte verständlich?
-   - Kann ein Entwickler die Aufträge ausführen?
+   - Sind die Schritte verstaendlich?
+   - Kann ein Entwickler die Auftraege ausfuehren?
    - Sind technische Details ausreichend?
 
 4. **Dateien** (1-10)
-   - Sind alle benötigten Dateien genannt?
+   - Sind alle benoetigten Dateien genannt?
    - Sind die Pfade korrekt?
-   - Sind die Aktionen (neu/ändern) richtig?
+   - Sind die Aktionen (neu/aendern) richtig?
 
 5. **Regelwerk** (1-10)
-   - Ist das Übergabe-Format konsistent?
+   - Ist das Uebergabe-Format konsistent?
    - Sind Commit-Messages einheitlich?
    - Sind die Pflichten klar definiert?
 
-6. **Lücken** (1-10)
+6. **Luecken** (1-10)
    - Fehlen wichtige Aspekte?
-   - Sind Tests/Dokumentation berücksichtigt?
+   - Sind Tests/Dokumentation beruecksichtigt?
    - Gibt es unklare Bereiche?
 
 7. **Duplikate** (1-10)
-   - Gibt es unnötige Überschneidungen?
+   - Gibt es unnoetige Ueberschneidungen?
    - Wiederholen sich Aufgaben?
    - Ist alles einzigartig?
 
 BEWERTUNGS-SKALA:
 - 1-4: Schlecht (kritische Probleme)
-- 5-7: Mittel (Verbesserungen nötig)
+- 5-7: Mittel (Verbesserungen noetig)
 - 8-10: Gut (akzeptabel)
 
 AUSGABE als JSON (NUR JSON, kein anderer Text):
 {{
     "gesamt_bewertung": 8,
-    "gesamt_kommentar": "Die Aufträge sind gut strukturiert und decken den Enterprise-Plan weitgehend ab. Einige Details könnten präziser sein.",
+    "gesamt_kommentar": "Die Auftraege sind gut strukturiert und decken den Enterprise-Plan weitgehend ab. Einige Details koennten praeziser sein.",
     "kategorien": [
         {{
-            "name": "Vollständigkeit",
+            "name": "Vollstaendigkeit",
             "bewertung": 9,
             "status": "gut",
             "kommentar": "Alle Aspekte des Plans sind abgedeckt. Keine wichtigen Features fehlen."
@@ -94,13 +94,13 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
             "name": "Reihenfolge",
             "bewertung": 8,
             "status": "gut",
-            "kommentar": "Abhängigkeiten sind korrekt. Setup kommt zuerst, Tests am Ende."
+            "kommentar": "Abhaengigkeiten sind korrekt. Setup kommt zuerst, Tests am Ende."
         }},
         {{
             "name": "Klarheit",
             "bewertung": 7,
             "status": "mittel",
-            "kommentar": "Die meisten Schritte sind klar. Einige könnten detaillierter sein."
+            "kommentar": "Die meisten Schritte sind klar. Einige koennten detaillierter sein."
         }},
         {{
             "name": "Dateien",
@@ -112,26 +112,26 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
             "name": "Regelwerk",
             "bewertung": 9,
             "status": "gut",
-            "kommentar": "Übergabe-Format ist einheitlich über alle Aufträge."
+            "kommentar": "Uebergabe-Format ist einheitlich ueber alle Auftraege."
         }},
         {{
-            "name": "Lücken",
+            "name": "Luecken",
             "bewertung": 8,
             "status": "gut",
-            "kommentar": "Keine kritischen Lücken. Tests und Docs sind erwähnt."
+            "kommentar": "Keine kritischen Luecken. Tests und Docs sind erwaehnt."
         }},
         {{
             "name": "Duplikate",
             "bewertung": 9,
             "status": "gut",
-            "kommentar": "Keine unnötigen Wiederholungen gefunden."
+            "kommentar": "Keine unnoetigen Wiederholungen gefunden."
         }}
     ],
     "verbesserungen": [
         {{
             "auftrag": "2.3",
             "typ": "empfehlung",
-            "text": "Schritt 2 könnte konkreter sein: Welche Felder genau im Formular?"
+            "text": "Schritt 2 koennte konkreter sein: Welche Felder genau im Formular?"
         }},
         {{
             "auftrag": "3.1",
@@ -140,13 +140,13 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
         }}
     ],
     "warnungen": [],
-    "fazit": "Die Aufträge sind gut vorbereitet und bereit für die Umsetzung. Kleinere Detailverbesserungen sind optional."
+    "fazit": "Die Auftraege sind gut vorbereitet und bereit fuer die Umsetzung. Kleinere Detailverbesserungen sind optional."
 }}
 
 WICHTIG:
 - Sei kritisch aber konstruktiv
 - Bei Bewertung < 7: Gib konkrete Verbesserungen an
-- Bei kritischen Problemen: Füge Warnungen hinzu
+- Bei kritischen Problemen: Fuege Warnungen hinzu
 - status MUSS "gut", "mittel" oder "schlecht" sein
 - Gesamtbewertung ist der Durchschnitt der Kategorien (gerundet)
 """
@@ -158,27 +158,27 @@ def pruefen_auftraege(
     enterprise_plan: str
 ) -> dict[str, Any]:
     """
-    Prüft Aufträge mit Gemini 3 Pro auf Qualität.
+    Prueft Auftraege mit Gemini 3 Pro auf Qualitaet.
 
     Args:
-        auftraege_data: Auftrags-Struktur aus dem Aufträge-Generator
+        auftraege_data: Auftrags-Struktur aus dem Auftraege-Generator
         phasen_data: Phasen-Struktur aus dem Phasen-Generator
         enterprise_plan: Original Enterprise-Plan
 
     Returns:
-        dict: Qualitäts-Bewertung mit:
+        dict: Qualitaets-Bewertung mit:
             - gesamt_bewertung: Gesamtnote (1-10)
             - gesamt_kommentar: Zusammenfassung
             - kategorien: Liste der 7 Kategorien mit Bewertungen
-            - verbesserungen: Konkrete Verbesserungsvorschläge
+            - verbesserungen: Konkrete Verbesserungsvorschlaege
             - warnungen: Kritische Warnungen
-            - fazit: Abschließendes Fazit
+            - fazit: Abschliessendes Fazit
 
     Raises:
-        ValueError: Bei ungültiger JSON-Antwort oder Validierungsfehler
+        ValueError: Bei ungueltiger JSON-Antwort oder Validierungsfehler
         Exception: Bei API-Fehler
     """
-    logger.info("Starte Qualitätsprüfung")
+    logger.info("Starte Qualitaetspruefung")
 
     client = get_client()
 
@@ -186,7 +186,7 @@ def pruefen_auftraege(
     phasen_json = json.dumps(phasen_data, indent=2, ensure_ascii=False)
     auftraege_json = json.dumps(auftraege_data, indent=2, ensure_ascii=False)
 
-    # Prompt mit Daten füllen
+    # Prompt mit Daten fuellen
     prompt = QUALITAET_PROMPT.format(
         enterprise_plan=enterprise_plan,
         phasen_json=phasen_json,
@@ -205,28 +205,28 @@ def pruefen_auftraege(
     parsed = extract_json(response)
 
     if not parsed or "kategorien" not in parsed:
-        logger.error("Keine gültige Qualitätsbewertung in der Antwort gefunden")
+        logger.error("Keine gueltige Qualitaetsbewertung in der Antwort gefunden")
         raise ValueError(
-            "Konnte keine gültige Qualitätsbewertung aus der KI-Antwort extrahieren.\n"
+            "Konnte keine gueltige Qualitaetsbewertung aus der KI-Antwort extrahieren.\n"
             f"Antwort (erste 500 Zeichen):\n{response[:500]}"
         )
 
     # Validierung
     validate_qualitaet(parsed)
 
-    logger.info(f"Qualitätsprüfung abgeschlossen: Gesamtbewertung {parsed.get('gesamt_bewertung', '?')}/10")
+    logger.info(f"Qualitaetspruefung abgeschlossen: Gesamtbewertung {parsed.get('gesamt_bewertung', '?')}/10")
     return parsed
 
 
 def validate_qualitaet(data: dict[str, Any]) -> None:
     """
-    Validiert die Qualitäts-Struktur.
+    Validiert die Qualitaets-Struktur.
 
     Args:
-        data: Zu validierende Qualitäts-Daten
+        data: Zu validierende Qualitaets-Daten
 
     Raises:
-        ValueError: Bei ungültiger Struktur
+        ValueError: Bei ungueltiger Struktur
     """
     # Required keys - mit Standardwerten falls fehlend
     if "gesamt_bewertung" not in data:
@@ -240,7 +240,7 @@ def validate_qualitaet(data: dict[str, Any]) -> None:
             logger.warning("gesamt_bewertung fehlt, setze auf 5")
 
     if "gesamt_kommentar" not in data:
-        data["gesamt_kommentar"] = "Keine Bewertung verfügbar"
+        data["gesamt_kommentar"] = "Keine Bewertung verfuegbar"
         logger.warning("gesamt_kommentar fehlt")
 
     if "kategorien" not in data:
@@ -248,7 +248,7 @@ def validate_qualitaet(data: dict[str, Any]) -> None:
         logger.warning("kategorien fehlt")
 
     if "fazit" not in data:
-        data["fazit"] = "Keine Bewertung verfügbar"
+        data["fazit"] = "Keine Bewertung verfuegbar"
         logger.warning("fazit fehlt")
 
     # Gesamtbewertung muss 1-10 sein
@@ -257,10 +257,10 @@ def validate_qualitaet(data: dict[str, Any]) -> None:
         logger.warning(f"gesamt_bewertung korrigiert auf {data['gesamt_bewertung']}")
 
     # Kategorien validieren
-    expected_categories = ["Vollständigkeit", "Reihenfolge", "Klarheit", "Dateien", "Regelwerk", "Lücken", "Duplikate"]
+    expected_categories = ["Vollstaendigkeit", "Reihenfolge", "Klarheit", "Dateien", "Regelwerk", "Luecken", "Duplikate"]
 
     for i, kategorie in enumerate(data.get("kategorien", [])):
-        # Required fields für Kategorie
+        # Required fields fuer Kategorie
         if "name" not in kategorie:
             kategorie["name"] = expected_categories[i] if i < len(expected_categories) else f"Kategorie {i+1}"
             logger.warning(f"Kategorie {i+1}: name fehlt")
@@ -280,7 +280,7 @@ def validate_qualitaet(data: dict[str, Any]) -> None:
             logger.warning(f"Kategorie {kategorie['name']}: status berechnet")
 
         if "kommentar" not in kategorie:
-            kategorie["kommentar"] = "Keine Details verfügbar"
+            kategorie["kommentar"] = "Keine Details verfuegbar"
             logger.warning(f"Kategorie {kategorie['name']}: kommentar fehlt")
 
         # Bewertung muss 1-10 sein
@@ -304,12 +304,12 @@ def validate_qualitaet(data: dict[str, Any]) -> None:
     if "warnungen" not in data:
         data["warnungen"] = []
 
-    logger.debug("Qualitäts-Validierung erfolgreich")
+    logger.debug("Qualitaets-Validierung erfolgreich")
 
 
 def get_status_icon(status: str) -> str:
     """
-    Gibt Icon für Status zurück.
+    Gibt Icon fuer Status zurueck.
 
     Args:
         status: "gut", "mittel" oder "schlecht"
@@ -327,7 +327,7 @@ def get_status_icon(status: str) -> str:
 
 def get_status_color(status: str) -> str:
     """
-    Gibt CSS-Klasse für Status zurück.
+    Gibt CSS-Klasse fuer Status zurueck.
 
     Args:
         status: "gut", "mittel" oder "schlecht"
@@ -345,16 +345,16 @@ def get_status_color(status: str) -> str:
 
 def format_qualitaet_for_display(data: dict[str, Any]) -> str:
     """
-    Formatiert Qualitätsbewertung für die Anzeige (Markdown).
+    Formatiert Qualitaetsbewertung fuer die Anzeige (Markdown).
 
     Args:
-        data: Qualitäts-Daten
+        data: Qualitaets-Daten
 
     Returns:
-        str: Markdown-formatierte Qualitätsbewertung
+        str: Markdown-formatierte Qualitaetsbewertung
     """
     lines = []
-    lines.append(f"# Qualitätsprüfung\n")
+    lines.append(f"# Qualitaetspruefung\n")
     lines.append(f"**Gesamtbewertung:** {data.get('gesamt_bewertung', '?')}/10\n")
     lines.append(f"\n{data.get('gesamt_kommentar', '')}\n")
     lines.append("---\n")
@@ -368,7 +368,7 @@ def format_qualitaet_for_display(data: dict[str, Any]) -> str:
 
     # Verbesserungen
     if data.get("verbesserungen"):
-        lines.append("## Verbesserungsvorschläge\n")
+        lines.append("## Verbesserungsvorschlaege\n")
         for verb in data["verbesserungen"]:
             lines.append(f"- **Auftrag {verb.get('auftrag', '?')}:** {verb.get('text', '')}\n")
         lines.append("\n")
@@ -382,6 +382,6 @@ def format_qualitaet_for_display(data: dict[str, Any]) -> str:
 
     # Fazit
     lines.append("## Fazit\n")
-    lines.append(f"{data.get('fazit', 'Keine Bewertung verfügbar')}\n")
+    lines.append(f"{data.get('fazit', 'Keine Bewertung verfuegbar')}\n")
 
     return "\n".join(lines)

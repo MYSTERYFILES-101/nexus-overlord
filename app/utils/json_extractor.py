@@ -20,11 +20,11 @@ def extract_json(text: str, fallback: dict | None = None) -> dict:
 
     Versucht verschiedene Methoden, um JSON aus KI-Antworten zu extrahieren:
     1. Direkt als JSON parsen
-    2. JSON aus Markdown Code-Blöcken extrahieren
+    2. JSON aus Markdown Code-Bloecken extrahieren
     3. JSON-Objekt mit Regex finden
 
     Args:
-        text: Text der JSON enthalten könnte
+        text: Text der JSON enthalten koennte
         fallback: Fallback-Dict falls kein JSON gefunden wird (Standard: {})
 
     Returns:
@@ -34,7 +34,7 @@ def extract_json(text: str, fallback: dict | None = None) -> dict:
         fallback = {}
 
     if not text or not text.strip():
-        logger.warning("Leerer Text für JSON-Extraktion übergeben")
+        logger.warning("Leerer Text fuer JSON-Extraktion uebergeben")
         return fallback
 
     # 1. Versuche direkt zu parsen
@@ -46,7 +46,7 @@ def extract_json(text: str, fallback: dict | None = None) -> dict:
     except json.JSONDecodeError:
         pass
 
-    # 2. Suche in Markdown Code-Blöcken
+    # 2. Suche in Markdown Code-Bloecken
     code_block_patterns = [
         r'```json\s*\n?(.*?)\n?```',
         r'```\s*\n?(.*?)\n?```',
@@ -64,7 +64,7 @@ def extract_json(text: str, fallback: dict | None = None) -> dict:
                 continue
 
     # 3. Suche nach JSON-Objekt mit geschweiften Klammern
-    # Finde das äußerste Klammerpaar
+    # Finde das aeusserste Klammerpaar
     try:
         start = text.find('{')
         if start != -1:
@@ -113,7 +113,7 @@ def extract_json(text: str, fallback: dict | None = None) -> dict:
     except json.JSONDecodeError:
         pass
 
-    logger.warning("Kein gültiges JSON-Objekt gefunden, verwende Fallback")
+    logger.warning("Kein gueltiges JSON-Objekt gefunden, verwende Fallback")
     return fallback
 
 
@@ -122,7 +122,7 @@ def extract_json_array(text: str, fallback: list | None = None) -> list:
     Extrahiert ein JSON-Array aus einem Text.
 
     Args:
-        text: Text der JSON-Array enthalten könnte
+        text: Text der JSON-Array enthalten koennte
         fallback: Fallback-Liste falls kein Array gefunden wird (Standard: [])
 
     Returns:
@@ -132,7 +132,7 @@ def extract_json_array(text: str, fallback: list | None = None) -> list:
         fallback = []
 
     if not text or not text.strip():
-        logger.warning("Leerer Text für JSON-Array-Extraktion übergeben")
+        logger.warning("Leerer Text fuer JSON-Array-Extraktion uebergeben")
         return fallback
 
     # 1. Versuche direkt zu parsen
@@ -144,7 +144,7 @@ def extract_json_array(text: str, fallback: list | None = None) -> list:
     except json.JSONDecodeError:
         pass
 
-    # 2. Suche in Markdown Code-Blöcken
+    # 2. Suche in Markdown Code-Bloecken
     code_block_patterns = [
         r'```json\s*\n?(.*?)\n?```',
         r'```\s*\n?(.*?)\n?```',
@@ -197,15 +197,15 @@ def extract_json_array(text: str, fallback: list | None = None) -> list:
                     logger.debug("JSON-Array mit Klammer-Matching extrahiert")
                     return result
     except (json.JSONDecodeError, ValueError) as e:
-        logger.debug(f"Klammer-Matching für Array fehlgeschlagen: {e}")
+        logger.debug(f"Klammer-Matching fuer Array fehlgeschlagen: {e}")
 
-    logger.warning("Kein gültiges JSON-Array gefunden, verwende Fallback")
+    logger.warning("Kein gueltiges JSON-Array gefunden, verwende Fallback")
     return fallback
 
 
 def sanitize_json_response(text: str) -> str:
     """
-    Bereinigt einen Text für besseres JSON-Parsing.
+    Bereinigt einen Text fuer besseres JSON-Parsing.
 
     Entfernt Steuerzeichen und andere problematische Zeichen.
 
@@ -221,7 +221,7 @@ def sanitize_json_response(text: str) -> str:
     # Ersetze problematische Whitespace-Zeichen
     text = text.replace('\r\n', '\n').replace('\r', '\n')
 
-    # Entferne Steuerzeichen (außer \n und \t)
+    # Entferne Steuerzeichen (ausser \n und \t)
     text = ''.join(char for char in text if char == '\n' or char == '\t' or char >= ' ')
 
     return text.strip()

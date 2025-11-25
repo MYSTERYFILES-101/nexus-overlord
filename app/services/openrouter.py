@@ -2,13 +2,13 @@
 NEXUS OVERLORD v2.0 - OpenRouter API Client
 
 Handles API calls to OpenRouter for Multi-Agent Workflow.
-Unterstützt mehrere KI-Modelle: Opus 4.5, Gemini 3 Pro.
+Unterstuetzt mehrere KI-Modelle: Opus 4.5, Gemini 3 Pro.
 
 Features:
     - Retry-Logik mit exponentialem Backoff
     - Timeout-Handling
     - Rate-Limiting durch Exponential Backoff
-    - Logging für Debugging
+    - Logging fuer Debugging
 """
 
 import logging
@@ -24,13 +24,13 @@ logger = logging.getLogger(__name__)
 
 class OpenRouterClient:
     """
-    Client für die OpenRouter API.
+    Client fuer die OpenRouter API.
 
-    Unterstützt Retry-Logik mit exponentialem Backoff und
+    Unterstuetzt Retry-Logik mit exponentialem Backoff und
     verschiedene KI-Modelle (Opus 4.5, Gemini 3 Pro).
 
     Attributes:
-        api_key: OpenRouter API-Schlüssel
+        api_key: OpenRouter API-Schluessel
         base_url: OpenRouter API Endpoint
     """
 
@@ -39,16 +39,16 @@ class OpenRouterClient:
         Initialisiert den OpenRouter Client.
 
         Args:
-            api_key: OpenRouter API-Schlüssel (Standard: aus Umgebungsvariable)
+            api_key: OpenRouter API-Schluessel (Standard: aus Umgebungsvariable)
 
         Raises:
-            ValueError: Wenn kein API-Schlüssel gefunden wird
+            ValueError: Wenn kein API-Schluessel gefunden wird
         """
         self.api_key = api_key or os.getenv('OPENROUTER_API_KEY')
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
 
         if not self.api_key:
-            logger.error("OpenRouter API-Schlüssel nicht gefunden")
+            logger.error("OpenRouter API-Schluessel nicht gefunden")
             raise ValueError("OpenRouter API key not found in environment")
 
         logger.info("OpenRouter Client initialisiert")
@@ -126,7 +126,7 @@ class OpenRouterClient:
                 logger.warning(f"Versuch {attempt + 1}/{max_retries}: Timeout")
                 if attempt < max_retries - 1:
                     wait_time = 2 ** attempt
-                    logger.info(f"Warte {wait_time}s vor nächstem Versuch...")
+                    logger.info(f"Warte {wait_time}s vor naechstem Versuch...")
                     time.sleep(wait_time)
                     continue
 
@@ -135,7 +135,7 @@ class OpenRouterClient:
                 logger.warning(f"Versuch {attempt + 1}/{max_retries}: {last_error}")
                 if attempt < max_retries - 1:
                     wait_time = 2 ** attempt
-                    logger.info(f"Warte {wait_time}s vor nächstem Versuch...")
+                    logger.info(f"Warte {wait_time}s vor naechstem Versuch...")
                     time.sleep(wait_time)
                     continue
 
@@ -152,11 +152,11 @@ class OpenRouterClient:
 
     def call_sonnet(self, messages: list[dict[str, str]], **kwargs: Any) -> str:
         """
-        Ruft Opus 4.5 auf (Name für Kompatibilität beibehalten).
+        Ruft Opus 4.5 auf (Name fuer Kompatibilitaet beibehalten).
 
         Args:
             messages: Liste von Nachrichten
-            **kwargs: Weitere Argumente für call()
+            **kwargs: Weitere Argumente fuer call()
 
         Returns:
             str: Antwort vom Modell
@@ -171,7 +171,7 @@ class OpenRouterClient:
 
         Args:
             messages: Liste von Nachrichten
-            **kwargs: Weitere Argumente für call()
+            **kwargs: Weitere Argumente fuer call()
 
         Returns:
             str: Antwort vom Modell
@@ -186,7 +186,7 @@ class OpenRouterClient:
 
         Args:
             messages: Liste von Nachrichten
-            **kwargs: Weitere Argumente für call()
+            **kwargs: Weitere Argumente fuer call()
 
         Returns:
             str: Antwort vom Modell
@@ -202,7 +202,7 @@ _client: OpenRouterClient | None = None
 
 def get_client() -> OpenRouterClient:
     """
-    Gibt die Singleton-Instanz des OpenRouter-Clients zurück.
+    Gibt die Singleton-Instanz des OpenRouter-Clients zurueck.
 
     Returns:
         OpenRouterClient: Die Client-Instanz

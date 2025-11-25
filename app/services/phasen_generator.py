@@ -3,13 +3,13 @@ NEXUS OVERLORD v2.0 - Phasen Generator
 
 Gemini 3 Pro analysiert Enterprise-Plan und teilt ihn in 5-8 logische Phasen ein.
 
-Jede Phase enthält:
+Jede Phase enthaelt:
     - Nummer (sequentiell, 1-8)
-    - Name (kurz und prägnant)
+    - Name (kurz und praegnant)
     - Beschreibung (detailliert)
-    - Abhängigkeiten (Referenzen auf vorherige Phasen)
-    - Priorität (hoch/mittel/niedrig)
-    - Geschätzte Dauer
+    - Abhaengigkeiten (Referenzen auf vorherige Phasen)
+    - Prioritaet (hoch/mittel/niedrig)
+    - Geschaetzte Dauer
 """
 
 import logging
@@ -22,7 +22,7 @@ from app.utils.json_extractor import extract_json
 logger = logging.getLogger(__name__)
 
 
-# Prompt-Template für Phasen-Generierung
+# Prompt-Template fuer Phasen-Generierung
 PHASEN_PROMPT = """Du bist ein erfahrener Projekt-Stratege. Analysiere den folgenden Enterprise-Plan und teile ihn in 5-8 logische Phasen ein.
 
 ENTERPRISE-PLAN:
@@ -30,23 +30,23 @@ ENTERPRISE-PLAN:
 
 AUFGABE:
 1. Identifiziere die Hauptkomponenten des Projekts
-2. Gruppiere zusammengehörige Aufgaben
-3. Erkenne Abhängigkeiten (was muss zuerst fertig sein?)
-4. Setze Prioritäten (hoch/mittel/niedrig)
-5. Schätze realistische Dauer pro Phase
+2. Gruppiere zusammengehoerige Aufgaben
+3. Erkenne Abhaengigkeiten (was muss zuerst fertig sein?)
+4. Setze Prioritaeten (hoch/mittel/niedrig)
+5. Schaetze realistische Dauer pro Phase
 
 WICHTIG:
 - Erstelle 5-8 Phasen (nicht mehr, nicht weniger)
 - Jede Phase sollte logisch abgeschlossen sein
-- Abhängigkeiten sind Phase-Nummern (z.B. [1, 2] = hängt von Phase 1 und 2 ab)
-- Priorität: "hoch" für kritische, "mittel" für wichtige, "niedrig" für optionale Phasen
+- Abhaengigkeiten sind Phase-Nummern (z.B. [1, 2] = haengt von Phase 1 und 2 ab)
+- Prioritaet: "hoch" fuer kritische, "mittel" fuer wichtige, "niedrig" fuer optionale Phasen
 
 AUSGABE als JSON (NUR JSON, kein anderer Text):
 {{
     "phasen": [
         {{
             "nummer": 1,
-            "name": "Kurzer prägnanter Name",
+            "name": "Kurzer praegnanter Name",
             "beschreibung": "Detaillierte Beschreibung was in dieser Phase gemacht wird",
             "abhaengigkeiten": [],
             "prioritaet": "hoch",
@@ -54,7 +54,7 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
         }},
         {{
             "nummer": 2,
-            "name": "Nächste Phase",
+            "name": "Naechste Phase",
             "beschreibung": "Was wird hier gemacht",
             "abhaengigkeiten": [1],
             "prioritaet": "mittel",
@@ -63,7 +63,7 @@ AUSGABE als JSON (NUR JSON, kein anderer Text):
     ],
     "gesamt_phasen": 6,
     "gesamt_dauer": "15-20 Stunden",
-    "hinweise": "Zusätzliche strategische Empfehlungen für die Umsetzung"
+    "hinweise": "Zusaetzliche strategische Empfehlungen fuer die Umsetzung"
 }}
 """
 
@@ -79,18 +79,18 @@ def generate_phasen(enterprise_plan: str) -> dict[str, Any]:
         dict: Phasen-Struktur mit:
             - phasen: Liste der Phasen
             - gesamt_phasen: Anzahl der Phasen
-            - gesamt_dauer: Geschätzte Gesamtdauer
+            - gesamt_dauer: Geschaetzte Gesamtdauer
             - hinweise: Strategische Empfehlungen
 
     Raises:
-        ValueError: Bei ungültiger JSON-Antwort oder Validierungsfehler
+        ValueError: Bei ungueltiger JSON-Antwort oder Validierungsfehler
         Exception: Bei API-Fehler
     """
     logger.info("Starte Phasen-Generierung")
 
     client = get_client()
 
-    # Prompt mit Enterprise-Plan füllen
+    # Prompt mit Enterprise-Plan fuellen
     prompt = PHASEN_PROMPT.format(enterprise_plan=enterprise_plan)
 
     # Gemini 3 Pro aufrufen
@@ -105,9 +105,9 @@ def generate_phasen(enterprise_plan: str) -> dict[str, Any]:
     parsed = extract_json(response)
 
     if not parsed or "phasen" not in parsed:
-        logger.error("Keine gültigen Phasen in der Antwort gefunden")
+        logger.error("Keine gueltigen Phasen in der Antwort gefunden")
         raise ValueError(
-            "Konnte keine gültigen Phasen aus der KI-Antwort extrahieren.\n"
+            "Konnte keine gueltigen Phasen aus der KI-Antwort extrahieren.\n"
             f"Antwort (erste 500 Zeichen):\n{response[:500]}"
         )
 
@@ -126,7 +126,7 @@ def validate_phasen(data: dict[str, Any]) -> None:
         data: Zu validierende Phasen-Daten
 
     Raises:
-        ValueError: Bei ungültiger Struktur
+        ValueError: Bei ungueltiger Struktur
     """
     # Required keys
     if "phasen" not in data:
@@ -138,7 +138,7 @@ def validate_phasen(data: dict[str, Any]) -> None:
         raise ValueError("'phasen' muss eine Liste sein")
 
     if len(phasen) < 5 or len(phasen) > 8:
-        logger.warning(f"Ungewöhnliche Phasen-Anzahl: {len(phasen)} (erwartet 5-8)")
+        logger.warning(f"Ungewoehnliche Phasen-Anzahl: {len(phasen)} (erwartet 5-8)")
         # Kein Fehler werfen, nur warnen - KI kann manchmal abweichen
 
     # Validiere jede Phase
@@ -147,7 +147,7 @@ def validate_phasen(data: dict[str, Any]) -> None:
         required = ["nummer", "name", "beschreibung", "abhaengigkeiten", "prioritaet"]
         for field in required:
             if field not in phase:
-                # Füge Standardwert hinzu statt Fehler zu werfen
+                # Fuege Standardwert hinzu statt Fehler zu werfen
                 if field == "abhaengigkeiten":
                     phase["abhaengigkeiten"] = []
                 elif field == "prioritaet":
@@ -157,19 +157,19 @@ def validate_phasen(data: dict[str, Any]) -> None:
                 else:
                     raise ValueError(f"Phase {i+1} fehlt Feld: '{field}'")
 
-        # Korrigiere Nummer falls nötig
+        # Korrigiere Nummer falls noetig
         if phase["nummer"] != i + 1:
             logger.warning(f"Phase-Nummer korrigiert: {phase['nummer']} -> {i+1}")
             phase["nummer"] = i + 1
 
-        # Priorität validieren/korrigieren
+        # Prioritaet validieren/korrigieren
         if phase["prioritaet"] not in ["hoch", "mittel", "niedrig"]:
-            logger.warning(f"Ungültige Priorität in Phase {i+1}: {phase['prioritaet']} -> 'mittel'")
+            logger.warning(f"Ungueltige Prioritaet in Phase {i+1}: {phase['prioritaet']} -> 'mittel'")
             phase["prioritaet"] = "mittel"
 
-        # Abhängigkeiten müssen Liste sein
+        # Abhaengigkeiten muessen Liste sein
         if not isinstance(phase["abhaengigkeiten"], list):
-            logger.warning(f"Abhängigkeiten in Phase {i+1} korrigiert zu leerer Liste")
+            logger.warning(f"Abhaengigkeiten in Phase {i+1} korrigiert zu leerer Liste")
             phase["abhaengigkeiten"] = []
 
     logger.debug("Phasen-Validierung erfolgreich")
@@ -177,7 +177,7 @@ def validate_phasen(data: dict[str, Any]) -> None:
 
 def format_phasen_for_display(data: dict[str, Any]) -> str:
     """
-    Formatiert Phasen-Daten für die Anzeige (Markdown).
+    Formatiert Phasen-Daten fuer die Anzeige (Markdown).
 
     Args:
         data: Phasen-Daten
@@ -186,8 +186,8 @@ def format_phasen_for_display(data: dict[str, Any]) -> str:
         str: Markdown-formatierte Phasen
     """
     lines = []
-    lines.append(f"# Phasen-Übersicht ({data.get('gesamt_phasen', len(data['phasen']))} Phasen)\n")
-    lines.append(f"**Geschätzte Gesamtdauer:** {data.get('gesamt_dauer', 'N/A')}\n")
+    lines.append(f"# Phasen-Uebersicht ({data.get('gesamt_phasen', len(data['phasen']))} Phasen)\n")
+    lines.append(f"**Geschaetzte Gesamtdauer:** {data.get('gesamt_dauer', 'N/A')}\n")
 
     if "hinweise" in data:
         lines.append(f"**Strategische Hinweise:** {data['hinweise']}\n")
@@ -197,14 +197,14 @@ def format_phasen_for_display(data: dict[str, Any]) -> str:
     for phase in data["phasen"]:
         lines.append(f"## Phase {phase['nummer']}: {phase['name']}\n")
         lines.append(f"**Beschreibung:** {phase['beschreibung']}\n")
-        lines.append(f"**Priorität:** {phase['prioritaet'].upper()}\n")
+        lines.append(f"**Prioritaet:** {phase['prioritaet'].upper()}\n")
         lines.append(f"**Dauer:** {phase.get('geschaetzte_dauer', 'N/A')}\n")
 
         if phase["abhaengigkeiten"]:
             deps = ", ".join([f"Phase {d}" for d in phase["abhaengigkeiten"]])
-            lines.append(f"**Abhängigkeiten:** {deps}\n")
+            lines.append(f"**Abhaengigkeiten:** {deps}\n")
         else:
-            lines.append("**Abhängigkeiten:** Keine\n")
+            lines.append("**Abhaengigkeiten:** Keine\n")
 
         lines.append("\n")
 

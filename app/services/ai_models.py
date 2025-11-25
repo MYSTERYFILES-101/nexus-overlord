@@ -1,6 +1,6 @@
 """
 NEXUS OVERLORD v2.0 - AI Models Integration
-Funktionen für Gemini 3 Pro und Claude Sonnet 4.5
+Funktionen fuer Gemini 3 Pro und Claude Sonnet 4.5
 """
 
 from app.services.openrouter import call_openrouter
@@ -9,13 +9,13 @@ from app.services.openrouter import call_openrouter
 # MODEL-IDs (OpenRouter)
 # ========================================
 
-# Gemini 3 Pro - Stratege, Überblick, Prüfung
+# Gemini 3 Pro - Stratege, Ueberblick, Pruefung
 MODEL_GEMINI = "google/gemini-3-pro-preview"
 
-# Claude Opus 4.5 - Detailarbeiter, Aufträge, Code (Upgrade von Sonnet)
+# Claude Opus 4.5 - Detailarbeiter, Auftraege, Code (Upgrade von Sonnet)
 MODEL_OPUS = "anthropic/claude-opus-4-5-20251101"
 
-# Alias für Abwärtskompatibilität
+# Alias fuer Abwaertskompatibilitaet
 MODEL_SONNET = MODEL_OPUS
 
 
@@ -28,17 +28,17 @@ def call_gemini(prompt: str, system: str = None, max_tokens: int = 4000, tempera
     Call Gemini 3 Pro via OpenRouter
 
     Verwendung:
-    - Stratege und Überblick
+    - Stratege und Ueberblick
     - Feedback geben
-    - Qualitätsprüfung
+    - Qualitaetspruefung
     - Phasen-Einteilung
-    - Kritisches Prüfen
+    - Kritisches Pruefen
 
     Args:
         prompt (str): User-Prompt
         system (str): System-Prompt (optional)
         max_tokens (int): Max Tokens (default: 4000)
-        temperature (float): Kreativität 0.0-1.0 (default: 0.7)
+        temperature (float): Kreativitaet 0.0-1.0 (default: 0.7)
 
     Returns:
         str: Antwort von Gemini 3 Pro
@@ -75,22 +75,22 @@ def call_sonnet(prompt: str, system: str = None, max_tokens: int = 4000, tempera
 
     Verwendung:
     - Detailarbeiter
-    - Aufträge erstellen
+    - Auftraege erstellen
     - Code-Analyse
-    - Präzise Anweisungen
-    - Lösungs-Aufträge
+    - Praezise Anweisungen
+    - Loesungs-Auftraege
 
     Args:
         prompt (str): User-Prompt
         system (str): System-Prompt (optional)
         max_tokens (int): Max Tokens (default: 4000)
-        temperature (float): Kreativität 0.0-1.0 (default: 0.7)
+        temperature (float): Kreativitaet 0.0-1.0 (default: 0.7)
 
     Returns:
         str: Antwort von Claude Sonnet 4.5
 
     Example:
-        >>> response = call_sonnet("Erstelle einen Auftrag für...")
+        >>> response = call_sonnet("Erstelle einen Auftrag fuer...")
         >>> print(response)
     """
     messages = []
@@ -123,7 +123,7 @@ def multi_agent_workflow(user_plan: str):
     Phase 1: Sonnet analysiert
     Phase 2: Gemini gibt Feedback
     Phase 3: Sonnet erstellt Enterprise-Plan
-    Phase 4: Gemini prüft Qualität
+    Phase 4: Gemini prueft Qualitaet
     Phase 5: Sonnet verbessert
     Phase 6: Gemini finale Bewertung
 
@@ -147,7 +147,7 @@ def multi_agent_workflow(user_plan: str):
     # Phase 2: Gemini gibt Feedback
     feedback = call_gemini(
         prompt=f"Gib Feedback zu dieser Analyse:\n\n{analyse}",
-        system="Du bist ein kritischer Reviewer. Finde Lücken und Probleme."
+        system="Du bist ein kritischer Reviewer. Finde Luecken und Probleme."
     )
 
     # Phase 3: Sonnet erstellt Enterprise-Plan
@@ -156,19 +156,19 @@ def multi_agent_workflow(user_plan: str):
         system="Erstelle einen detaillierten Enterprise-Projektplan."
     )
 
-    # Phase 4: Gemini prüft Qualität
+    # Phase 4: Gemini prueft Qualitaet
     qualitaet = call_gemini(
-        prompt=f"Prüfe die Qualität dieses Plans:\n\n{enterprise_plan}",
-        system="Prüfe auf Vollständigkeit, Machbarkeit und Qualität."
+        prompt=f"Pruefe die Qualitaet dieses Plans:\n\n{enterprise_plan}",
+        system="Pruefe auf Vollstaendigkeit, Machbarkeit und Qualitaet."
     )
 
-    # Phase 5: Sonnet verbessert (falls nötig)
-    # TODO: Implementieren in späteren Phasen
+    # Phase 5: Sonnet verbessert (falls noetig)
+    # TODO: Implementieren in spaeteren Phasen
 
     # Phase 6: Gemini finale Bewertung
     bewertung = call_gemini(
-        prompt=f"Bewerte diesen finalen Plan (1-10) mit Begründung:\n\n{enterprise_plan}",
-        system="Gib eine objektive Bewertung von 1-10 mit Begründung."
+        prompt=f"Bewerte diesen finalen Plan (1-10) mit Begruendung:\n\n{enterprise_plan}",
+        system="Gib eine objektive Bewertung von 1-10 mit Begruendung."
     )
 
     return {
