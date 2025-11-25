@@ -1,8 +1,9 @@
 """
-NEXUS OVERLORD v2.0 - Fehler Analyzer (Auftrag 4.3 + 5.1)
+NEXUS OVERLORD v2.0 - Fehler Analyzer (Auftrag 4.3 + 5.1 + 5.2)
 
 Analysiert Fehler mit Gemini 3 Pro und erstellt Loesungs-Auftraege mit Opus 4.5.
 Erweitert mit automatischer Kategorisierung, Severity-Erkennung und Tags.
+Auftrag 5.2: Fuzzy-Matching mit rapidfuzz fuer intelligente Fehlersuche.
 """
 
 import json
@@ -12,7 +13,7 @@ import re
 from app.services.openrouter import get_client
 from app.services.database import (
     search_fehler, save_fehler, increment_fehler_count,
-    increment_similar_count
+    increment_similar_count, search_similar_fehler, get_best_match
 )
 from app.utils.fehler_helper import (
     detect_category, detect_severity, extract_tags,
@@ -53,32 +54,59 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
 
     logger.debug(f"Auto-Analyse: Kategorie={kategorie}, Severity={severity}, Tags={tags}")
 
-    # 1. Pruefe Fehler-Datenbank
-    bekannter_fehler = search_fehler(fehler_text)
+    # 1. Fuzzy-Search in Fehler-Datenbank (Auftrag 5.2)
+    similar_fehler = search_similar_fehler(fehler_text, kategorie, limit=3, min_score=30.0)
+    best_match = get_best_match(fehler_text, kategorie)
 
-    if bekannter_fehler:
-        # Bekannter Fehler gefunden!
-        logger.info(f"Bekannter Fehler gefunden: ID {bekannter_fehler['id']}")
-        increment_fehler_count(bekannter_fehler['id'])
+    if best_match and best_match.get('match_score', 0) >= 70.0:
+        # Hohe Uebereinstimmung gefunden (>= 70%)
+        logger.info(f"Best Match gefunden: ID {best_match['id']} (Score: {best_match['match_score']:.1f})")
+        increment_fehler_count(best_match['id'])
 
         # Wenn aehnlicher aber nicht exakt gleicher Fehler
-        if bekannter_fehler.get('muster') not in fehler_text:
-            increment_similar_count(bekannter_fehler['id'])
+        if best_match.get('muster') and best_match['muster'] not in fehler_text:
+            increment_similar_count(best_match['id'])
 
         return {
             'bekannt': True,
+            'match_score': best_match.get('match_score', 0),
+            'kategorie': best_match.get('kategorie', kategorie),
+            'severity': best_match.get('severity', severity),
+            'status': best_match.get('status', 'aktiv'),
+            'tags': best_match.get('tags_list', tags),
+            'ursache': f"Bekannter Fehler (#{best_match['id']}) - Match: {best_match.get('match_score', 0):.0f}%",
+            'loesung': best_match['loesung'],
+            'fix_command': best_match.get('fix_command', fix_command),
+            'auftrag': _create_quick_auftrag(best_match),
+            'fehler_id': best_match['id'],
+            'erfolgsrate': best_match.get('erfolgsrate', 0),
+            'anzahl': best_match.get('anzahl', 1),
+            'similar_count': best_match.get('similar_count', 0),
+            'similar_fehler': [(f, s) for f, s in similar_fehler if f['id'] != best_match['id']][:2]
+        }
+
+    # 1b. Fallback auf exakte Suche (alte Methode)
+    bekannter_fehler = search_fehler(fehler_text)
+    if bekannter_fehler:
+        logger.info(f"Exakter Match gefunden: ID {bekannter_fehler['id']}")
+        increment_fehler_count(bekannter_fehler['id'])
+
+        return {
+            'bekannt': True,
+            'match_score': 100.0,
             'kategorie': bekannter_fehler.get('kategorie', kategorie),
             'severity': bekannter_fehler.get('severity', severity),
             'status': bekannter_fehler.get('status', 'aktiv'),
             'tags': bekannter_fehler.get('tags_list', tags),
-            'ursache': f"Bekannter Fehler (#{bekannter_fehler['id']})",
+            'ursache': f"Bekannter Fehler (#{bekannter_fehler['id']}) - Exakter Match",
             'loesung': bekannter_fehler['loesung'],
             'fix_command': bekannter_fehler.get('fix_command', fix_command),
             'auftrag': _create_quick_auftrag(bekannter_fehler),
             'fehler_id': bekannter_fehler['id'],
             'erfolgsrate': bekannter_fehler.get('erfolgsrate', 0),
             'anzahl': bekannter_fehler.get('anzahl', 1),
-            'similar_count': bekannter_fehler.get('similar_count', 0)
+            'similar_count': bekannter_fehler.get('similar_count', 0),
+            'similar_fehler': similar_fehler[:2]
         }
 
     # 2. Neuer Fehler -> KI-Analyse
@@ -111,6 +139,7 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
 
         return {
             'bekannt': False,
+            'match_score': 0,
             'kategorie': final_kategorie,
             'severity': final_severity,
             'status': 'aktiv',
@@ -122,7 +151,8 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
             'fehler_id': fehler_id,
             'erfolgsrate': 100,
             'anzahl': 1,
-            'similar_count': 0
+            'similar_count': 0,
+            'similar_fehler': similar_fehler[:3]  # Zeige aehnliche Fehler als Referenz
         }
 
     except Exception as e:
@@ -131,6 +161,7 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
         # Fallback bei API-Fehler - nutze Auto-Analyse
         return {
             'bekannt': False,
+            'match_score': 0,
             'kategorie': kategorie,
             'severity': severity,
             'status': 'aktiv',
@@ -142,7 +173,8 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
             'fehler_id': None,
             'erfolgsrate': 0,
             'anzahl': 0,
-            'similar_count': 0
+            'similar_count': 0,
+            'similar_fehler': similar_fehler[:3]  # Zeige aehnliche Fehler als Referenz
         }
 
 

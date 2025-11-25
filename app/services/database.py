@@ -963,6 +963,185 @@ def migrate_fehler_table() -> bool:
 
 
 # ========================================
+# FUZZY-SEARCH FUNKTIONEN (Auftrag 5.2)
+# ========================================
+
+def calculate_similarity_score(
+    fehler_text: str,
+    db_fehler: dict,
+    match_kategorie: bool = False
+) -> float:
+    """
+    Berechnet Similarity-Score fuer einen Fehler.
+
+    Scoring-System:
+    - Text-Aehnlichkeit (rapidfuzz): 0-60 Punkte
+    - Tag-Matching: 0-20 Punkte (2 pro Match, max 10 Tags)
+    - Erfolgsrate-Bonus: 0-10 Punkte
+    - Haeufigkeits-Bonus: 0-10 Punkte (log-skaliert)
+
+    Args:
+        fehler_text: Eingegebener Fehlertext
+        db_fehler: Fehler-Dict aus Datenbank
+        match_kategorie: True wenn Kategorie uebereinstimmt
+
+    Returns:
+        float: Score zwischen 0-100
+    """
+    from rapidfuzz import fuzz
+    import math
+    import json
+
+    score = 0.0
+
+    # 1. Text-Aehnlichkeit mit rapidfuzz (max 60 Punkte)
+    muster = db_fehler.get('muster', '')
+    if muster:
+        # Token Set Ratio ist tolerant gegenueber Wortstellung
+        text_score = fuzz.token_set_ratio(fehler_text.lower(), muster.lower())
+        score += (text_score / 100) * 60
+
+    # 2. Tag-Matching (max 20 Punkte, 2 pro Match)
+    db_tags = db_fehler.get('tags_list', [])
+    if not db_tags and db_fehler.get('tags'):
+        try:
+            db_tags = json.loads(db_fehler['tags'])
+        except (json.JSONDecodeError, TypeError):
+            db_tags = []
+
+    # Extrahiere Tags aus dem Fehlertext
+    from app.utils.fehler_helper import extract_tags, detect_category
+    input_kategorie = detect_category(fehler_text)
+    input_tags = extract_tags(fehler_text, input_kategorie)
+
+    matching_tags = len(set(input_tags) & set(db_tags))
+    score += min(matching_tags * 2, 20)
+
+    # 3. Erfolgsrate-Bonus (max 10 Punkte)
+    erfolgsrate = db_fehler.get('erfolgsrate', 0) or 0
+    score += (erfolgsrate / 100) * 10
+
+    # 4. Haeufigkeits-Bonus (max 10 Punkte, logarithmisch)
+    anzahl = db_fehler.get('anzahl', 1) or 1
+    # log2(anzahl + 1) * 2, max 10
+    freq_score = min(math.log2(anzahl + 1) * 2, 10)
+    score += freq_score
+
+    # 5. Kategorie-Bonus (implizit durch bessere Filterung)
+    if match_kategorie:
+        score *= 1.1  # 10% Bonus bei Kategorie-Match
+
+    return min(score, 100)
+
+
+def search_similar_fehler(
+    fehler_text: str,
+    kategorie: str | None = None,
+    limit: int = 3,
+    min_score: float = 30.0
+) -> list[tuple[dict, float]]:
+    """
+    Sucht aehnliche Fehler mit Fuzzy-Matching und Scoring.
+
+    Args:
+        fehler_text: Der zu suchende Fehlertext
+        kategorie: Optional - Kategorie-Filter
+        limit: Max. Anzahl Ergebnisse (default 3)
+        min_score: Minimaler Score fuer Ergebnisse (default 30)
+
+    Returns:
+        list: Liste von (fehler_dict, score) Tupeln, sortiert nach Score
+    """
+    from rapidfuzz import fuzz
+    import json
+
+    logger.debug(f"Suche aehnliche Fehler fuer: {fehler_text[:100]}...")
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Hole alle Fehler (oder gefiltert nach Kategorie)
+        if kategorie:
+            cursor.execute("""
+                SELECT id, muster, kategorie, loesung, anzahl, erfolgsrate,
+                       projekt_id, severity, status, tags, stack_trace,
+                       fix_command, similar_count, last_seen
+                FROM fehler
+                WHERE kategorie = ? AND status != 'veraltet'
+                ORDER BY anzahl DESC
+            """, (kategorie,))
+        else:
+            cursor.execute("""
+                SELECT id, muster, kategorie, loesung, anzahl, erfolgsrate,
+                       projekt_id, severity, status, tags, stack_trace,
+                       fix_command, similar_count, last_seen
+                FROM fehler
+                WHERE status != 'veraltet'
+                ORDER BY anzahl DESC
+            """)
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        if not rows:
+            logger.debug("Keine Fehler in Datenbank gefunden")
+            return []
+
+        # Score fuer jeden Fehler berechnen
+        scored_results = []
+        for row in rows:
+            fehler = dict(row)
+
+            # Tags parsen
+            try:
+                fehler['tags_list'] = json.loads(fehler.get('tags', '[]'))
+            except (json.JSONDecodeError, TypeError):
+                fehler['tags_list'] = []
+
+            # Score berechnen
+            match_kat = kategorie and fehler.get('kategorie') == kategorie
+            score = calculate_similarity_score(fehler_text, fehler, match_kat)
+
+            if score >= min_score:
+                scored_results.append((fehler, score))
+
+        # Nach Score sortieren (absteigend)
+        scored_results.sort(key=lambda x: x[1], reverse=True)
+
+        # Limit anwenden
+        results = scored_results[:limit]
+
+        logger.info(f"Gefunden: {len(results)} aehnliche Fehler (min_score={min_score})")
+        return results
+
+    except Exception as e:
+        logger.error(f"Fehler bei Fuzzy-Search: {e}")
+        return []
+
+
+def get_best_match(fehler_text: str, kategorie: str | None = None) -> dict | None:
+    """
+    Findet den besten Match fuer einen Fehlertext.
+
+    Args:
+        fehler_text: Der zu suchende Fehlertext
+        kategorie: Optional - Kategorie-Filter
+
+    Returns:
+        dict | None: Bester Fehler-Match mit Score, oder None
+    """
+    results = search_similar_fehler(fehler_text, kategorie, limit=1, min_score=50.0)
+
+    if results:
+        fehler, score = results[0]
+        fehler['match_score'] = score
+        return fehler
+
+    return None
+
+
+# ========================================
 # ANALYSE-FUNKTIONEN
 # ========================================
 

@@ -1,23 +1,49 @@
 {#
-NEXUS OVERLORD v2.0 - Fehler Response Template (Auftrag 4.3)
-Zeigt Fehler-Analyse und Lösung im Chat an
+NEXUS OVERLORD v2.0 - Fehler Response Template (Auftrag 4.3 + 5.2)
+Zeigt Fehler-Analyse und Loesung im Chat an.
+Auftrag 5.2: Match-Score Anzeige und aehnliche Fehler Dropdown
 #}
 
 <div class="chat-message chat-fehler {% if bekannt %}bekannt{% else %}neu{% endif %}" data-fehler-id="{{ fehler_id }}">
-    <!-- Header -->
+    <!-- Header mit Match-Score Badge -->
     <div class="message-header">
         <div class="message-info">
             <span class="message-icon">{% if bekannt %}&#128161;{% else %}&#128269;{% endif %}</span>
             <span class="message-title">
                 {% if bekannt %}
-                    Bekannte Lösung gefunden!
+                    Bekannte Loesung gefunden!
                 {% else %}
                     Neue Fehler-Analyse
                 {% endif %}
             </span>
         </div>
-        <span class="fehler-kategorie-badge kategorie-{{ kategorie }}">{{ kategorie }}</span>
+        <div class="header-badges">
+            {% if match_score is defined and match_score > 0 %}
+            <span class="match-score-badge score-{% if match_score >= 80 %}high{% elif match_score >= 50 %}medium{% else %}low{% endif %}">
+                &#127919; {{ match_score|round|int }}% Match
+            </span>
+            {% endif %}
+            <span class="fehler-kategorie-badge kategorie-{{ kategorie }}">{{ kategorie }}</span>
+            {% if severity is defined %}
+            <span class="severity-badge severity-{{ severity }}">
+                {% if severity == 'critical' %}&#128308;{% elif severity == 'high' %}&#128992;{% elif severity == 'medium' %}&#128993;{% else %}&#128994;{% endif %}
+                {{ severity|upper }}
+            </span>
+            {% endif %}
+        </div>
     </div>
+
+    <!-- Tags (wenn vorhanden) -->
+    {% if tags is defined and tags %}
+    <div class="fehler-tags">
+        {% for tag in tags[:5] %}
+        <span class="tag-badge">{{ tag }}</span>
+        {% endfor %}
+        {% if tags|length > 5 %}
+        <span class="tag-more">+{{ tags|length - 5 }} mehr</span>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <!-- Ursache (nur bei neuen Fehlern) -->
     {% if not bekannt and ursache %}
@@ -37,20 +63,71 @@ Zeigt Fehler-Analyse und Lösung im Chat an
             <span class="stat-icon">&#128337;</span>
             <span>{{ anzahl }}x aufgetreten</span>
         </span>
+        {% if similar_count is defined and similar_count > 0 %}
+        <span class="stat-item">
+            <span class="stat-icon">&#128279;</span>
+            <span>{{ similar_count }} aehnliche</span>
+        </span>
+        {% endif %}
     </div>
     {% endif %}
 
-    <!-- Lösung -->
+    <!-- Loesung -->
     <div class="fehler-loesung">
-        <h4>&#128161; Lösung</h4>
+        <h4>&#128161; Loesung</h4>
         <pre class="loesung-text">{{ loesung }}</pre>
     </div>
 
-    <!-- Lösungs-Auftrag -->
+    <!-- Fix-Command (wenn vorhanden) -->
+    {% if fix_command is defined and fix_command %}
+    <div class="fehler-fix-command">
+        <h4>&#128736; Fix-Befehl</h4>
+        <div class="fix-command-container">
+            <code class="fix-command-code" id="fixCommand{{ fehler_id }}">{{ fix_command }}</code>
+            <button class="btn-copy-inline" onclick="copyFixCommand({{ fehler_id }})" title="Befehl kopieren">
+                &#128203;
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Loesungs-Auftrag -->
     <div class="fehler-auftrag">
-        <h4>&#128196; Lösungs-Auftrag für Claude Code</h4>
+        <h4>&#128196; Loesungs-Auftrag fuer Claude Code</h4>
         <pre class="auftrag-text" id="fehlerAuftrag{{ fehler_id }}">{{ auftrag }}</pre>
     </div>
+
+    <!-- Aehnliche Fehler Dropdown (Auftrag 5.2) -->
+    {% if similar_fehler is defined and similar_fehler %}
+    <div class="similar-fehler-section">
+        <button class="similar-toggle" onclick="toggleSimilarFehler({{ fehler_id }})">
+            &#128279; {{ similar_fehler|length }} aehnliche Fehler anzeigen
+            <span class="toggle-icon" id="toggleIcon{{ fehler_id }}">&#9660;</span>
+        </button>
+        <div class="similar-fehler-list" id="similarList{{ fehler_id }}" style="display: none;">
+            {% for similar, score in similar_fehler %}
+            <div class="similar-fehler-item">
+                <div class="similar-header">
+                    <span class="similar-score">{{ score|round|int }}%</span>
+                    <span class="similar-kategorie kategorie-{{ similar.kategorie }}">{{ similar.kategorie }}</span>
+                    <span class="similar-severity severity-{{ similar.severity|default('medium') }}">
+                        {% if similar.severity == 'critical' %}&#128308;{% elif similar.severity == 'high' %}&#128992;{% elif similar.severity == 'medium' %}&#128993;{% else %}&#128994;{% endif %}
+                    </span>
+                </div>
+                <div class="similar-muster">{{ similar.muster[:100] }}{% if similar.muster|length > 100 %}...{% endif %}</div>
+                <div class="similar-loesung">
+                    <strong>Loesung:</strong> {{ similar.loesung[:200] }}{% if similar.loesung|length > 200 %}...{% endif %}
+                </div>
+                {% if similar.fix_command %}
+                <div class="similar-fix">
+                    <code>{{ similar.fix_command }}</code>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Actions -->
     <div class="message-actions">
@@ -79,3 +156,236 @@ Zeigt Fehler-Analyse und Lösung im Chat an
     <!-- Feedback Response -->
     <div class="feedback-response" id="feedbackResponse{{ fehler_id }}" style="display: none;"></div>
 </div>
+
+<style>
+/* Match-Score Badge Styles (Auftrag 5.2) */
+.header-badges {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.match-score-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.match-score-badge.score-high {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+}
+
+.match-score-badge.score-medium {
+    background: linear-gradient(135deg, #eab308, #ca8a04);
+    color: white;
+}
+
+.match-score-badge.score-low {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+/* Severity Badge */
+.severity-badge {
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.2);
+}
+
+.severity-badge.severity-critical { color: #ef4444; }
+.severity-badge.severity-high { color: #f97316; }
+.severity-badge.severity-medium { color: #eab308; }
+.severity-badge.severity-low { color: #22c55e; }
+
+/* Tags */
+.fehler-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0.5rem 0;
+}
+
+.tag-badge {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+}
+
+.tag-more {
+    color: #9ca3af;
+    font-size: 0.7rem;
+}
+
+/* Fix Command */
+.fehler-fix-command {
+    margin: 1rem 0;
+    background: rgba(0,0,0,0.2);
+    padding: 0.75rem;
+    border-radius: 6px;
+    border-left: 3px solid #22c55e;
+}
+
+.fehler-fix-command h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.85rem;
+    color: #22c55e;
+}
+
+.fix-command-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fix-command-code {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #4ade80;
+}
+
+.btn-copy-inline {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.btn-copy-inline:hover {
+    opacity: 1;
+}
+
+/* Similar Fehler Section */
+.similar-fehler-section {
+    margin-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 0.75rem;
+}
+
+.similar-toggle {
+    width: 100%;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.similar-toggle:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.toggle-icon {
+    transition: transform 0.3s;
+}
+
+.toggle-icon.open {
+    transform: rotate(180deg);
+}
+
+.similar-fehler-list {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.similar-fehler-item {
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    padding: 0.75rem;
+    border-left: 3px solid #3b82f6;
+}
+
+.similar-header {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.similar-score {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.similar-kategorie {
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.7rem;
+}
+
+.similar-muster {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-bottom: 0.5rem;
+    word-break: break-all;
+}
+
+.similar-loesung {
+    font-size: 0.8rem;
+    color: #d1d5db;
+}
+
+.similar-fix {
+    margin-top: 0.5rem;
+}
+
+.similar-fix code {
+    background: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+}
+</style>
+
+<script>
+// Toggle Similar Fehler Dropdown
+function toggleSimilarFehler(fehlerId) {
+    const list = document.getElementById('similarList' + fehlerId);
+    const icon = document.getElementById('toggleIcon' + fehlerId);
+
+    if (list.style.display === 'none') {
+        list.style.display = 'flex';
+        icon.classList.add('open');
+    } else {
+        list.style.display = 'none';
+        icon.classList.remove('open');
+    }
+}
+
+// Copy Fix Command
+function copyFixCommand(fehlerId) {
+    const code = document.getElementById('fixCommand' + fehlerId);
+    navigator.clipboard.writeText(code.textContent).then(() => {
+        // Show feedback
+        const feedback = document.getElementById('copyFehlerFeedback' + fehlerId);
+        feedback.style.display = 'block';
+        setTimeout(() => {
+            feedback.style.display = 'none';
+        }, 2000);
+    });
+}
+</script>
