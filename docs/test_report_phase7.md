@@ -15,10 +15,10 @@
 | Kachel 1 | 4 | 4 | 0 | 100% |
 | Kachel 2 | 2 | 2 | 0 | 100% |
 | Kachel 3 | 4 | 4 | 0 | 100% |
-| Buttons | 7 | 6 | 1 | 86% |
+| Buttons | 7 | 7 | 0 | 100% |
 | Fehler-DB | 5 | 5 | 0 | 100% |
 | PDF Export | 4 | 4 | 0 | 100% |
-| **GESAMT** | **31** | **30** | **1** | **97%** |
+| **GESAMT** | **31** | **31** | **0** | **100%** |
 
 ---
 
@@ -70,7 +70,7 @@
 | Button "Auftrag" | PASS | POST /projekt/1/auftrag - Formatierter Auftrag zurueckgegeben |
 | Button "Fehler" (bekannt) | PASS | Bekannte Loesung mit 96% Erfolgsrate gefunden |
 | Button "Fehler" (neu) | PASS | Analyse funktioniert |
-| Button "Analysieren" | **FAIL** | "Projekt nicht gefunden" wegen fehlender DB-Spalte |
+| Button "Analysieren" | PASS | Projekt-Analyse erfolgreich (nach Migration 7.2) |
 | Button "Uebergaben" | PASS | Modal mit Upload-Zone angezeigt |
 | Button "Export PDF" | PASS | PDF erfolgreich generiert (9591 Bytes) |
 | Chat senden | PASS | Nachricht gespeichert, ID zurueckgegeben |
@@ -113,17 +113,19 @@
 
 ## Gefundene Bugs
 
-### BUG #1 - MITTEL
+### BUG #1 - MITTEL - ✅ BEHOBEN (7.2)
 
 **Problem:** Analysieren-Button funktioniert nicht
 **Ursache:** `no such column: a.updated_at` in auftraege Tabelle
-**Fix:** Migration erforderlich - `updated_at` Spalte hinzufuegen
+**Fix:** Migration durchgefuehrt am 2025-11-25 22:16
+**Status:** BEHOBEN - updated_at Spalte hinzugefuegt
 
-### BUG #2 - KLEIN
+### BUG #2 - KLEIN - ✅ BEHOBEN (7.2)
 
 **Problem:** Auftrag-Status Update fehlerhaft
 **Ursache:** Gleiche fehlende Spalte wie BUG #1
-**Fix:** Wird durch gleiche Migration behoben
+**Fix:** Durch gleiche Migration behoben
+**Status:** BEHOBEN - Status-Update setzt jetzt updated_at korrekt
 
 ---
 
@@ -156,7 +158,7 @@
 
 ## Fazit
 
-**NEXUS OVERLORD v2.0 ist zu 97% funktionsfaehig.**
+**NEXUS OVERLORD v2.0 ist zu 100% funktionsfaehig.**
 
 Die Kernfunktionen funktionieren alle:
 - Projekt erstellen (UI vorhanden)
@@ -165,6 +167,6 @@ Die Kernfunktionen funktionieren alle:
 - PDF-Export vollstaendig
 - Chat-System funktioniert
 
-Nur der "Analysieren" Button ist aufgrund einer fehlenden Datenbank-Spalte nicht funktionsfaehig. Dies ist ein einfacher Fix (ALTER TABLE).
+Alle Bugs wurden in Auftrag 7.2 behoben (Migration fuer updated_at Spalte).
 
-**Empfehlung:** Nach Behebung der 2 Bugs ist das System produktionsreif.
+**Status:** PRODUKTIONSREIF - Alle 31 Tests bestanden (100%)

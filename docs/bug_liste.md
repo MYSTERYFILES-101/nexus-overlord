@@ -1,14 +1,15 @@
 # NEXUS OVERLORD v2.0 - Bug-Liste
 
 **Erstellt:** 2025-11-25
-**Phase:** 7.1 - Komplett-Test
+**Phase:** 7.2 - Bugs behoben
+**Aktualisiert:** 2025-11-25 22:16
 **Tester:** Claude Code (Automatisiert)
 
 ---
 
 ## Gefundene Bugs
 
-### BUG #1 - MITTEL
+### BUG #1 - MITTEL - ✅ BEHOBEN
 
 **Beschreibung:** Analysieren-Button gibt "Projekt nicht gefunden" zurück, obwohl Projekt existiert
 
@@ -50,7 +51,7 @@ CREATE TABLE auftraege (
 
 ---
 
-### BUG #2 - KLEIN
+### BUG #2 - KLEIN - ✅ BEHOBEN
 
 **Beschreibung:** Auftrag-Status Update gibt Fehler wegen fehlender `updated_at` Spalte
 
@@ -73,30 +74,27 @@ app.services.database - ERROR - Fehler beim Aktualisieren von Auftrag 2: no such
 
 | Bug # | Beschreibung | Schwere | Status |
 |-------|--------------|---------|--------|
-| 1 | Analysieren-Button fehlerhaft (missing column) | MITTEL | OFFEN |
-| 2 | Auftrag-Status Update fehlerhaft | KLEIN | OFFEN |
+| 1 | Analysieren-Button fehlerhaft (missing column) | MITTEL | ✅ BEHOBEN |
+| 2 | Auftrag-Status Update fehlerhaft | KLEIN | ✅ BEHOBEN |
 
-**Gesamt:** 2 Bugs gefunden
+**Gesamt:** 2 Bugs gefunden - **ALLE BEHOBEN**
 - Kritisch: 0
-- Mittel: 1
-- Klein: 1
+- Mittel: 1 (behoben)
+- Klein: 1 (behoben)
 
 ---
 
-## Empfohlener Fix
+## Durchgefuehrter Fix (Auftrag 7.2)
 
-Eine Migration durchfuehren um `updated_at` zur `auftraege` Tabelle hinzuzufuegen:
-
-```sql
-ALTER TABLE auftraege ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP;
-```
-
-Und einen Trigger erstellen:
+Migration am 2025-11-25 22:16 durchgefuehrt:
 
 ```sql
-CREATE TRIGGER update_auftraege_timestamp
-AFTER UPDATE ON auftraege
-BEGIN
-    UPDATE auftraege SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;
+ALTER TABLE auftraege ADD COLUMN updated_at DATETIME;
+UPDATE auftraege SET updated_at = created_at WHERE updated_at IS NULL;
 ```
+
+**Ergebnis:**
+- `updated_at` Spalte erfolgreich hinzugefuegt
+- Analysieren-Button funktioniert jetzt
+- Status-Update setzt `updated_at` korrekt auf aktuelle Zeit
+- Alle Tests bestanden (31/31 = 100%)
