@@ -143,13 +143,61 @@ def projekt_fehler(projekt_id: int):
 
 @steuern_bp.route('/projekt/<int:projekt_id>/fehler/<int:fehler_id>/feedback', methods=['POST'])
 def fehler_feedback(projekt_id: int, fehler_id: int):
-    """Feedback zur Fehler-Loesung (Auftrag 4.3)."""
-    from app.services.database import update_fehler_erfolgsrate
+    """
+    Feedback zur Fehler-Loesung (Auftrag 4.3 + 5.3).
+
+    Auftrag 5.3: Erweitert mit Learning-Loop - Erfolgsrate wird dynamisch
+    angepasst und bei zu vielen negativen Feedbacks wird der Fehler
+    als 'veraltet' markiert.
+    """
+    from app.services.database import update_fehler_feedback
 
     erfolg = request.form.get('erfolg', 'true').lower() == 'true'
-    update_fehler_erfolgsrate(fehler_id, erfolg)
+    result = update_fehler_feedback(fehler_id, erfolg)
 
-    return jsonify({'success': True, 'message': 'Feedback gespeichert'})
+    return jsonify({
+        'success': result.get('success', False),
+        'message': 'Feedback gespeichert' if result.get('success') else result.get('error', 'Fehler'),
+        'neue_rate': result.get('neue_rate'),
+        'status': result.get('status'),
+        'helpful': result.get('helpful')
+    })
+
+
+@steuern_bp.route('/fehler/stats', methods=['GET'])
+def fehler_stats():
+    """
+    Liefert Fehler-Datenbank Statistiken (Auftrag 5.3).
+
+    Returns:
+        JSON: Umfangreiche Statistiken zur Fehler-Datenbank
+    """
+    from app.services.database import get_fehler_stats
+
+    stats = get_fehler_stats()
+    return jsonify(stats)
+
+
+@steuern_bp.route('/fehler/maintenance', methods=['POST'])
+def fehler_maintenance():
+    """
+    Fuehrt Wartung der Fehler-Datenbank durch (Auftrag 5.3).
+
+    - Deduplizierung (>= 90% aehnliche Fehler mergen)
+    - Cleanup (alte + erfolglose Fehler entfernen)
+
+    Returns:
+        JSON: Zusammenfassung der Wartungsaktionen
+    """
+    from app.services.database import run_fehler_maintenance
+
+    result = run_fehler_maintenance()
+    return jsonify({
+        'success': True,
+        'deduplizierung': result.get('deduplizierung'),
+        'cleanup': result.get('cleanup'),
+        'stats': result.get('stats')
+    })
 
 
 @steuern_bp.route('/projekt/<int:projekt_id>/analysieren', methods=['POST'])

@@ -1,9 +1,10 @@
 """
-NEXUS OVERLORD v2.0 - Fehler Analyzer (Auftrag 4.3 + 5.1 + 5.2)
+NEXUS OVERLORD v2.0 - Fehler Analyzer (Auftrag 4.3 + 5.1 + 5.2 + 5.3)
 
 Analysiert Fehler mit Gemini 3 Pro und erstellt Loesungs-Auftraege mit Opus 4.5.
 Erweitert mit automatischer Kategorisierung, Severity-Erkennung und Tags.
 Auftrag 5.2: Fuzzy-Matching mit rapidfuzz fuer intelligente Fehlersuche.
+Auftrag 5.3: Intelligentes Merging - Duplikate vermeiden, Learning-Loop.
 """
 
 import json
@@ -13,7 +14,8 @@ import re
 from app.services.openrouter import get_client
 from app.services.database import (
     search_fehler, save_fehler, increment_fehler_count,
-    increment_similar_count, search_similar_fehler, get_best_match
+    increment_similar_count, search_similar_fehler, get_best_match,
+    save_or_merge_fehler, update_fehler_feedback
 )
 from app.utils.fehler_helper import (
     detect_category, detect_severity, extract_tags,
@@ -123,8 +125,8 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
         # Opus 4.5 erstellt Loesungs-Auftrag
         auftrag = _create_auftrag_with_opus(fehler_text, ki_analyse, projekt_name)
 
-        # Fehler in Datenbank speichern (erweitert)
-        fehler_id = save_fehler(
+        # Fehler in Datenbank speichern ODER mit aehnlichem mergen (Auftrag 5.3)
+        merge_result = save_or_merge_fehler(
             muster=ki_analyse.get('muster', fehler_text[:100]),
             kategorie=final_kategorie,
             loesung=ki_analyse.get('loesung', 'Keine Loesung gefunden'),
@@ -135,11 +137,16 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
             fix_command=ki_analyse.get('fix_command', fix_command)
         )
 
-        logger.info(f"Neuer Fehler gespeichert mit ID: {fehler_id}")
+        fehler_id = merge_result['fehler_id']
+        was_merged = merge_result['merged']
+
+        logger.info(f"Fehler {'gemerged' if was_merged else 'erstellt'} mit ID: {fehler_id}")
 
         return {
-            'bekannt': False,
-            'match_score': 0,
+            'bekannt': was_merged,  # Wenn gemerged, dann war es quasi bekannt
+            'match_score': merge_result.get('match_score', 0),
+            'merged': was_merged,
+            'merge_action': merge_result.get('action', 'unknown'),
             'kategorie': final_kategorie,
             'severity': final_severity,
             'status': 'aktiv',
@@ -149,7 +156,7 @@ def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", proje
             'fix_command': ki_analyse.get('fix_command', fix_command),
             'auftrag': auftrag,
             'fehler_id': fehler_id,
-            'erfolgsrate': 100,
+            'erfolgsrate': 100 if not was_merged else 50,  # Bei Merge: neutrale Rate
             'anzahl': 1,
             'similar_count': 0,
             'similar_fehler': similar_fehler[:3]  # Zeige aehnliche Fehler als Referenz

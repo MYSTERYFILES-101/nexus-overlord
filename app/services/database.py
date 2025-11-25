@@ -1142,6 +1142,493 @@ def get_best_match(fehler_text: str, kategorie: str | None = None) -> dict | Non
 
 
 # ========================================
+# INTELLIGENTES MERGING (Auftrag 5.3)
+# ========================================
+
+def save_or_merge_fehler(
+    muster: str,
+    kategorie: str,
+    loesung: str,
+    stack_trace: str | None = None,
+    projekt_id: int | None = None,
+    severity: str = "medium",
+    tags: list | None = None,
+    fix_command: str | None = None
+) -> dict:
+    """
+    Speichert Fehler oder merged mit bestehendem aehnlichen Fehler.
+
+    Workflow:
+    1. Suche aehnliche Fehler (>= 80% Match)
+    2. Falls gefunden: UPDATE bestehenden Eintrag
+    3. Falls nicht: INSERT neuen Eintrag
+
+    Args:
+        muster: Fehler-Muster/Text
+        kategorie: Fehler-Kategorie
+        loesung: Loesungsvorschlag
+        stack_trace: Optional - Stack-Trace
+        projekt_id: Optional - Projekt-Verknuepfung
+        severity: Schweregrad (default: medium)
+        tags: Optional - Tags-Liste
+        fix_command: Optional - Fix-Befehl
+
+    Returns:
+        dict: {'merged': bool, 'fehler_id': int, 'action': str, 'match_score': float}
+    """
+    logger.debug(f"save_or_merge_fehler: {muster[:50]}...")
+
+    try:
+        # Suche aehnliche Fehler (>= 80% Match)
+        similar = search_similar_fehler(
+            fehler_text=muster,
+            kategorie=kategorie,
+            limit=1,
+            min_score=80.0
+        )
+
+        if similar:
+            # Merge mit bestehendem
+            fehler, score = similar[0]
+            fehler_id = fehler['id']
+
+            conn = get_db()
+            cursor = conn.cursor()
+
+            # Stack-Trace anfuegen (wenn neu und noch nicht vorhanden)
+            if stack_trace:
+                current_trace = fehler.get('stack_trace', '') or ''
+                if stack_trace not in current_trace:
+                    new_trace = f"{current_trace}\n---\n{stack_trace}" if current_trace else stack_trace
+                else:
+                    new_trace = current_trace
+            else:
+                new_trace = fehler.get('stack_trace')
+
+            cursor.execute("""
+                UPDATE fehler
+                SET similar_count = similar_count + 1,
+                    last_seen = ?,
+                    anzahl = anzahl + 1,
+                    stack_trace = ?,
+                    updated_at = ?
+                WHERE id = ?
+            """, (
+                datetime.now().isoformat(),
+                new_trace,
+                datetime.now().isoformat(),
+                fehler_id
+            ))
+
+            conn.commit()
+            conn.close()
+
+            logger.info(f"Fehler gemerged mit ID {fehler_id} (Score: {score:.1f}%)")
+            return {
+                'merged': True,
+                'fehler_id': fehler_id,
+                'action': 'updated',
+                'match_score': score
+            }
+
+        else:
+            # Neu speichern
+            fehler_id = save_fehler(
+                muster=muster,
+                kategorie=kategorie,
+                loesung=loesung,
+                projekt_id=projekt_id,
+                severity=severity,
+                tags=tags,
+                stack_trace=stack_trace,
+                fix_command=fix_command
+            )
+
+            logger.info(f"Neuer Fehler erstellt mit ID {fehler_id}")
+            return {
+                'merged': False,
+                'fehler_id': fehler_id,
+                'action': 'created',
+                'match_score': 0
+            }
+
+    except Exception as e:
+        logger.error(f"Fehler bei save_or_merge_fehler: {e}")
+        # Fallback: Direkt speichern
+        fehler_id = save_fehler(
+            muster=muster,
+            kategorie=kategorie,
+            loesung=loesung,
+            projekt_id=projekt_id,
+            severity=severity,
+            tags=tags,
+            stack_trace=stack_trace,
+            fix_command=fix_command
+        )
+        return {
+            'merged': False,
+            'fehler_id': fehler_id,
+            'action': 'created_fallback',
+            'match_score': 0
+        }
+
+
+def update_fehler_feedback(fehler_id: int, helpful: bool) -> dict:
+    """
+    Aktualisiert Erfolgsrate basierend auf User-Feedback.
+
+    Args:
+        fehler_id: ID des Fehlers
+        helpful: True = hat geholfen, False = nicht geholfen
+
+    Returns:
+        dict: {'success': bool, 'neue_rate': float, 'status': str}
+    """
+    logger.debug(f"Feedback fuer Fehler {fehler_id}: helpful={helpful}")
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Aktuellen Stand holen
+        cursor.execute(
+            "SELECT erfolgsrate, anzahl FROM fehler WHERE id = ?",
+            (fehler_id,)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            conn.close()
+            return {'success': False, 'error': 'Fehler nicht gefunden'}
+
+        alte_rate = row['erfolgsrate'] or 50.0
+        anzahl = row['anzahl'] or 1
+
+        # Neue Erfolgsrate berechnen (gewichteter Durchschnitt)
+        if helpful:
+            neue_rate = ((alte_rate * anzahl) + 100) / (anzahl + 1)
+        else:
+            neue_rate = ((alte_rate * anzahl) + 0) / (anzahl + 1)
+
+        # Bei sehr schlechter Rate: Status = veraltet
+        if neue_rate < 30 and anzahl >= 3:
+            neuer_status = "veraltet"
+        else:
+            neuer_status = "aktiv"
+
+        cursor.execute("""
+            UPDATE fehler
+            SET erfolgsrate = ?,
+                status = ?,
+                updated_at = ?
+            WHERE id = ?
+        """, (neue_rate, neuer_status, datetime.now().isoformat(), fehler_id))
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Feedback verarbeitet: Fehler {fehler_id} neue Rate={neue_rate:.1f}%, Status={neuer_status}")
+        return {
+            'success': True,
+            'neue_rate': round(neue_rate, 1),
+            'status': neuer_status,
+            'helpful': helpful
+        }
+
+    except Exception as e:
+        logger.error(f"Fehler bei update_fehler_feedback: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+def find_and_merge_duplicates(threshold: float = 90.0) -> dict:
+    """
+    Findet und merged Duplikate (>= threshold% aehnlich).
+
+    Args:
+        threshold: Mindest-Aehnlichkeit fuer Merge (default: 90%)
+
+    Returns:
+        dict: {'merged_count': int, 'processed': int, 'errors': list}
+    """
+    from rapidfuzz import fuzz
+
+    logger.info(f"Starte Duplikat-Suche (threshold={threshold}%)")
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Alle aktiven Fehler holen (sortiert nach Anzahl, damit haeufigste bleiben)
+        cursor.execute("""
+            SELECT id, muster, kategorie, loesung, anzahl, erfolgsrate,
+                   similar_count, stack_trace, tags
+            FROM fehler
+            WHERE status = 'aktiv'
+            ORDER BY anzahl DESC
+        """)
+        alle_fehler = [dict(row) for row in cursor.fetchall()]
+
+        merged_count = 0
+        processed = set()
+        errors = []
+
+        for i, fehler1 in enumerate(alle_fehler):
+            if fehler1['id'] in processed:
+                continue
+
+            for fehler2 in alle_fehler[i+1:]:
+                if fehler2['id'] in processed:
+                    continue
+
+                # Nur gleiche Kategorie vergleichen
+                if fehler1['kategorie'] != fehler2['kategorie']:
+                    continue
+
+                # Aehnlichkeit pruefen
+                score = fuzz.token_set_ratio(
+                    fehler1['muster'].lower(),
+                    fehler2['muster'].lower()
+                )
+
+                if score >= threshold:
+                    try:
+                        # Merge fehler2 → fehler1
+                        new_anzahl = (fehler1['anzahl'] or 1) + (fehler2['anzahl'] or 1)
+                        new_similar = (fehler1['similar_count'] or 0) + (fehler2['similar_count'] or 0) + 1
+
+                        # Stack-Traces kombinieren
+                        trace1 = fehler1.get('stack_trace') or ''
+                        trace2 = fehler2.get('stack_trace') or ''
+                        combined_trace = trace1
+                        if trace2 and trace2 not in trace1:
+                            combined_trace = f"{trace1}\n---\n{trace2}" if trace1 else trace2
+
+                        cursor.execute("""
+                            UPDATE fehler
+                            SET anzahl = ?,
+                                similar_count = ?,
+                                stack_trace = ?,
+                                updated_at = ?
+                            WHERE id = ?
+                        """, (
+                            new_anzahl,
+                            new_similar,
+                            combined_trace,
+                            datetime.now().isoformat(),
+                            fehler1['id']
+                        ))
+
+                        cursor.execute("DELETE FROM fehler WHERE id = ?", (fehler2['id'],))
+
+                        processed.add(fehler2['id'])
+                        merged_count += 1
+
+                        logger.debug(f"Merged: {fehler2['id']} → {fehler1['id']} (Score: {score}%)")
+
+                    except Exception as e:
+                        errors.append(f"Merge {fehler2['id']} → {fehler1['id']}: {e}")
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Deduplizierung abgeschlossen: {merged_count} Duplikate gemerged")
+        return {
+            'merged_count': merged_count,
+            'processed': len(alle_fehler),
+            'errors': errors
+        }
+
+    except Exception as e:
+        logger.error(f"Fehler bei find_and_merge_duplicates: {e}")
+        return {'merged_count': 0, 'processed': 0, 'errors': [str(e)]}
+
+
+def cleanup_old_fehler(days: int = 180, min_erfolgsrate: float = 30.0) -> dict:
+    """
+    Loescht alte + erfolglose Fehler.
+
+    Args:
+        days: Alter in Tagen (default: 180)
+        min_erfolgsrate: Mindest-Erfolgsrate (default: 30%)
+
+    Returns:
+        dict: {'deleted_count': int, 'candidates': int}
+    """
+    logger.info(f"Starte Cleanup (days={days}, min_rate={min_erfolgsrate}%)")
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Erst zaehlen
+        cursor.execute("""
+            SELECT COUNT(*) FROM fehler
+            WHERE (
+                created_at < datetime('now', '-' || ? || ' days')
+                AND erfolgsrate < ?
+                AND anzahl <= 1
+            )
+            OR status = 'veraltet'
+        """, (days, min_erfolgsrate))
+        candidates = cursor.fetchone()[0]
+
+        # Dann loeschen
+        cursor.execute("""
+            DELETE FROM fehler
+            WHERE (
+                created_at < datetime('now', '-' || ? || ' days')
+                AND erfolgsrate < ?
+                AND anzahl <= 1
+            )
+            OR status = 'veraltet'
+        """, (days, min_erfolgsrate))
+
+        deleted_count = cursor.rowcount
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Cleanup abgeschlossen: {deleted_count} Fehler geloescht")
+        return {
+            'deleted_count': deleted_count,
+            'candidates': candidates
+        }
+
+    except Exception as e:
+        logger.error(f"Fehler bei cleanup_old_fehler: {e}")
+        return {'deleted_count': 0, 'candidates': 0, 'error': str(e)}
+
+
+def get_fehler_stats() -> dict:
+    """
+    Liefert Statistiken zur Fehler-Datenbank.
+
+    Returns:
+        dict: Umfangreiche Statistiken
+    """
+    logger.debug("Sammle Fehler-Statistiken")
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Gesamt-Statistiken
+        cursor.execute("SELECT COUNT(*) FROM fehler")
+        gesamt = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM fehler WHERE status = 'aktiv'")
+        aktiv = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM fehler WHERE status = 'veraltet'")
+        veraltet = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM fehler WHERE status = 'geloest'")
+        geloest = cursor.fetchone()[0]
+
+        cursor.execute("SELECT AVG(erfolgsrate) FROM fehler WHERE status = 'aktiv'")
+        avg_rate = cursor.fetchone()[0] or 0
+
+        cursor.execute("SELECT SUM(anzahl) FROM fehler")
+        total_nutzungen = cursor.fetchone()[0] or 0
+
+        # Pro Kategorie
+        cursor.execute("""
+            SELECT kategorie,
+                   COUNT(*) as anzahl,
+                   AVG(erfolgsrate) as avg_rate,
+                   SUM(anzahl) as nutzungen,
+                   SUM(similar_count) as similar_total
+            FROM fehler
+            WHERE status = 'aktiv'
+            GROUP BY kategorie
+            ORDER BY anzahl DESC
+        """)
+        kategorien_rows = cursor.fetchall()
+
+        kategorien = {}
+        for row in kategorien_rows:
+            kategorien[row['kategorie']] = {
+                'anzahl': row['anzahl'],
+                'erfolgsrate': round(row['avg_rate'] or 0, 1),
+                'nutzungen': row['nutzungen'] or 0,
+                'similar_matches': row['similar_total'] or 0
+            }
+
+        # Top 5 haeufigste Fehler
+        cursor.execute("""
+            SELECT muster, kategorie, anzahl, erfolgsrate
+            FROM fehler
+            WHERE status = 'aktiv'
+            ORDER BY anzahl DESC
+            LIMIT 5
+        """)
+        top_fehler = [dict(row) for row in cursor.fetchall()]
+
+        # Severity-Verteilung
+        cursor.execute("""
+            SELECT severity, COUNT(*) as count
+            FROM fehler
+            WHERE status = 'aktiv'
+            GROUP BY severity
+        """)
+        severity_rows = cursor.fetchall()
+        severity_verteilung = {row['severity']: row['count'] for row in severity_rows}
+
+        conn.close()
+
+        return {
+            'gesamt': gesamt,
+            'aktiv': aktiv,
+            'veraltet': veraltet,
+            'geloest': geloest,
+            'durchschnitt_erfolgsrate': round(avg_rate, 1),
+            'total_nutzungen': total_nutzungen,
+            'kategorien': kategorien,
+            'top_fehler': top_fehler,
+            'severity_verteilung': severity_verteilung
+        }
+
+    except Exception as e:
+        logger.error(f"Fehler bei get_fehler_stats: {e}")
+        return {
+            'gesamt': 0,
+            'aktiv': 0,
+            'veraltet': 0,
+            'geloest': 0,
+            'error': str(e)
+        }
+
+
+def run_fehler_maintenance() -> dict:
+    """
+    Fuehrt alle Wartungsaufgaben durch (beim Server-Start).
+
+    Returns:
+        dict: Zusammenfassung aller Wartungsaktionen
+    """
+    logger.info("Starte Fehler-Datenbank Wartung...")
+
+    results = {
+        'deduplizierung': None,
+        'cleanup': None,
+        'stats': None
+    }
+
+    # 1. Deduplizierung
+    results['deduplizierung'] = find_and_merge_duplicates(threshold=90.0)
+
+    # 2. Cleanup alter Fehler
+    results['cleanup'] = cleanup_old_fehler(days=180, min_erfolgsrate=30.0)
+
+    # 3. Statistiken sammeln
+    results['stats'] = get_fehler_stats()
+
+    logger.info(f"Wartung abgeschlossen: {results['deduplizierung']['merged_count']} gemerged, "
+                f"{results['cleanup']['deleted_count']} geloescht")
+
+    return results
+
+
+# ========================================
 # ANALYSE-FUNKTIONEN
 # ========================================
 

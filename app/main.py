@@ -67,4 +67,17 @@ if __name__ == '__main__':
     print(f"Debug: {debug}")
     print("=" * 60)
 
+    # Auftrag 5.3: Fehler-Datenbank Wartung beim Start
+    try:
+        from app.services.database import run_fehler_maintenance
+        print("Starte Fehler-Datenbank Wartung...")
+        result = run_fehler_maintenance()
+        print(f"  - Duplikate gemerged: {result['deduplizierung']['merged_count']}")
+        print(f"  - Alte Fehler bereinigt: {result['cleanup']['deleted_count']}")
+        print(f"  - Aktive Fehler: {result['stats']['aktiv']}")
+    except Exception as e:
+        print(f"Warnung: Fehler-Wartung fehlgeschlagen: {e}")
+
+    print("=" * 60)
+
     app.run(host=host, port=port, debug=debug)
