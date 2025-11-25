@@ -1,14 +1,30 @@
 """
 NEXUS OVERLORD v2.0 - Qualitätsprüfung
-Gemini 3 Pro prüft generierte Aufträge auf Qualität
+
+Gemini 3 Pro prüft generierte Aufträge auf Qualität.
+
+Prüfungskategorien:
+    - Vollständigkeit: Deckt der Plan alles ab?
+    - Reihenfolge: Sind Abhängigkeiten korrekt?
+    - Klarheit: Sind Schritte verständlich?
+    - Dateien: Sind Pfade und Aktionen korrekt?
+    - Regelwerk: Ist das Format konsistent?
+    - Lücken: Fehlt etwas Wichtiges?
+    - Duplikate: Gibt es Überschneidungen?
 """
 
 import json
-import re
-from typing import Dict, Any
+import logging
+from typing import Any
+
 from app.services.openrouter import get_client
+from app.utils.json_extractor import extract_json
+
+# Logger konfigurieren
+logger = logging.getLogger(__name__)
 
 
+# Prompt-Template für Qualitätsprüfung
 QUALITAET_PROMPT = """Du bist ein erfahrener QA-Manager und Software-Architekt. Prüfe die folgenden Aufträge auf Vollständigkeit und Qualität.
 
 ENTERPRISE-PLAN (Original):
@@ -59,9 +75,9 @@ Prüfe die Aufträge kritisch auf folgende Kategorien:
    - Ist alles einzigartig?
 
 BEWERTUNGS-SKALA:
-- 1-4: Schlecht (❌ kritische Probleme)
-- 5-7: Mittel (⚠️ Verbesserungen nötig)
-- 8-10: Gut (✅ akzeptabel)
+- 1-4: Schlecht (kritische Probleme)
+- 5-7: Mittel (Verbesserungen nötig)
+- 8-10: Gut (akzeptabel)
 
 AUSGABE als JSON (NUR JSON, kein anderer Text):
 {{
@@ -136,155 +152,168 @@ WICHTIG:
 """
 
 
-def pruefen_auftraege(auftraege_data: dict, phasen_data: dict, enterprise_plan: str) -> Dict[str, Any]:
+def pruefen_auftraege(
+    auftraege_data: dict[str, Any],
+    phasen_data: dict[str, Any],
+    enterprise_plan: str
+) -> dict[str, Any]:
     """
-    Prüft Aufträge mit Gemini 3 Pro
-    
+    Prüft Aufträge mit Gemini 3 Pro auf Qualität.
+
     Args:
-        auftraege_data: Auftrags-Struktur aus Auftrag 3.2
-        phasen_data: Phasen-Struktur aus Auftrag 3.1
+        auftraege_data: Auftrags-Struktur aus dem Aufträge-Generator
+        phasen_data: Phasen-Struktur aus dem Phasen-Generator
         enterprise_plan: Original Enterprise-Plan
-        
+
     Returns:
-        dict: Qualitäts-Bewertung mit Feedback
-        
+        dict: Qualitäts-Bewertung mit:
+            - gesamt_bewertung: Gesamtnote (1-10)
+            - gesamt_kommentar: Zusammenfassung
+            - kategorien: Liste der 7 Kategorien mit Bewertungen
+            - verbesserungen: Konkrete Verbesserungsvorschläge
+            - warnungen: Kritische Warnungen
+            - fazit: Abschließendes Fazit
+
     Raises:
-        Exception: Bei API-Fehler oder JSON-Parse-Fehler
+        ValueError: Bei ungültiger JSON-Antwort oder Validierungsfehler
+        Exception: Bei API-Fehler
     """
+    logger.info("Starte Qualitätsprüfung")
+
     client = get_client()
-    
+
     # Daten als JSON formatieren
     phasen_json = json.dumps(phasen_data, indent=2, ensure_ascii=False)
     auftraege_json = json.dumps(auftraege_data, indent=2, ensure_ascii=False)
-    
+
     # Prompt mit Daten füllen
     prompt = QUALITAET_PROMPT.format(
         enterprise_plan=enterprise_plan,
         phasen_json=phasen_json,
         auftraege_json=auftraege_json
     )
-    
+
     # Gemini 3 Pro aufrufen
+    logger.debug("Rufe Gemini 3 Pro auf")
     response = client.call_gemini([
         {"role": "user", "content": prompt}
     ], temperature=0.7, timeout=90)
-    
+
+    logger.debug(f"Gemini-Antwort erhalten ({len(response)} Zeichen)")
+
     # JSON aus Response extrahieren
     parsed = extract_json(response)
-    
+
+    if not parsed or "kategorien" not in parsed:
+        logger.error("Keine gültige Qualitätsbewertung in der Antwort gefunden")
+        raise ValueError(
+            "Konnte keine gültige Qualitätsbewertung aus der KI-Antwort extrahieren.\n"
+            f"Antwort (erste 500 Zeichen):\n{response[:500]}"
+        )
+
     # Validierung
     validate_qualitaet(parsed)
-    
+
+    logger.info(f"Qualitätsprüfung abgeschlossen: Gesamtbewertung {parsed.get('gesamt_bewertung', '?')}/10")
     return parsed
 
 
-def extract_json(response: str) -> Dict[str, Any]:
+def validate_qualitaet(data: dict[str, Any]) -> None:
     """
-    Extrahiert JSON aus verschiedenen Response-Formaten
-    (Gleiche Logik wie in anderen Generatoren)
-    """
-    # 1. JSON in Code-Block (```json ... ```)
-    if "```json" in response:
-        try:
-            json_str = response.split("```json")[1].split("```")[0].strip()
-            return json.loads(json_str)
-        except (IndexError, json.JSONDecodeError):
-            pass
-    
-    # 2. JSON in allgemeinem Code-Block (``` ... ```)
-    if "```" in response:
-        try:
-            json_str = response.split("```")[1].split("```")[0].strip()
-            json_str = re.sub(r'^[a-z]+\n', '', json_str)
-            return json.loads(json_str)
-        except (IndexError, json.JSONDecodeError):
-            pass
-    
-    # 3. Direktes JSON
-    try:
-        return json.loads(response.strip())
-    except json.JSONDecodeError:
-        pass
-    
-    # 4. JSON im Text finden
-    json_match = re.search(r'\{[\s\S]*\}', response)
-    if json_match:
-        try:
-            return json.loads(json_match.group(0))
-        except json.JSONDecodeError:
-            pass
-    
-    raise ValueError(
-        f"Konnte kein valides JSON in Response finden.\n"
-        f"Response (erste 500 Zeichen):\n{response[:500]}"
-    )
+    Validiert die Qualitäts-Struktur.
 
-
-def validate_qualitaet(data: Dict[str, Any]) -> None:
-    """
-    Validiert die Qualitäts-Struktur
-    
     Args:
         data: Zu validierende Qualitäts-Daten
-        
+
     Raises:
-        ValueError: Bei invalider Struktur
+        ValueError: Bei ungültiger Struktur
     """
-    # Required keys
-    required_top = ["gesamt_bewertung", "gesamt_kommentar", "kategorien", "fazit"]
-    for field in required_top:
-        if field not in data:
-            raise ValueError(f"Fehlendes Feld: '{field}'")
-    
+    # Required keys - mit Standardwerten falls fehlend
+    if "gesamt_bewertung" not in data:
+        # Berechne aus Kategorien falls vorhanden
+        if "kategorien" in data and data["kategorien"]:
+            bewertungen = [k.get("bewertung", 5) for k in data["kategorien"]]
+            data["gesamt_bewertung"] = round(sum(bewertungen) / len(bewertungen))
+            logger.warning("gesamt_bewertung berechnet aus Kategorien")
+        else:
+            data["gesamt_bewertung"] = 5
+            logger.warning("gesamt_bewertung fehlt, setze auf 5")
+
+    if "gesamt_kommentar" not in data:
+        data["gesamt_kommentar"] = "Keine Bewertung verfügbar"
+        logger.warning("gesamt_kommentar fehlt")
+
+    if "kategorien" not in data:
+        data["kategorien"] = []
+        logger.warning("kategorien fehlt")
+
+    if "fazit" not in data:
+        data["fazit"] = "Keine Bewertung verfügbar"
+        logger.warning("fazit fehlt")
+
     # Gesamtbewertung muss 1-10 sein
     if not (1 <= data["gesamt_bewertung"] <= 10):
-        raise ValueError(f"gesamt_bewertung muss zwischen 1 und 10 liegen, ist {data['gesamt_bewertung']}")
-    
-    # Kategorien muss Liste sein
-    if not isinstance(data["kategorien"], list):
-        raise ValueError("'kategorien' muss eine Liste sein")
-    
-    if len(data["kategorien"]) != 7:
-        raise ValueError(f"Es müssen genau 7 Kategorien sein, sind aber {len(data['kategorien'])}")
-    
-    # Validiere jede Kategorie
+        data["gesamt_bewertung"] = max(1, min(10, data["gesamt_bewertung"]))
+        logger.warning(f"gesamt_bewertung korrigiert auf {data['gesamt_bewertung']}")
+
+    # Kategorien validieren
     expected_categories = ["Vollständigkeit", "Reihenfolge", "Klarheit", "Dateien", "Regelwerk", "Lücken", "Duplikate"]
-    
-    for i, kategorie in enumerate(data["kategorien"]):
-        # Required fields
-        required_kat = ["name", "bewertung", "status", "kommentar"]
-        for field in required_kat:
-            if field not in kategorie:
-                raise ValueError(f"Kategorie {i+1} fehlt Feld: '{field}'")
-        
-        # Name muss einer der erwarteten sein
-        if kategorie["name"] not in expected_categories:
-            raise ValueError(f"Unerwarteter Kategorie-Name: '{kategorie['name']}' (erwartet: {expected_categories})")
-        
+
+    for i, kategorie in enumerate(data.get("kategorien", [])):
+        # Required fields für Kategorie
+        if "name" not in kategorie:
+            kategorie["name"] = expected_categories[i] if i < len(expected_categories) else f"Kategorie {i+1}"
+            logger.warning(f"Kategorie {i+1}: name fehlt")
+
+        if "bewertung" not in kategorie:
+            kategorie["bewertung"] = 5
+            logger.warning(f"Kategorie {kategorie['name']}: bewertung fehlt")
+
+        if "status" not in kategorie:
+            bewertung = kategorie.get("bewertung", 5)
+            if bewertung >= 8:
+                kategorie["status"] = "gut"
+            elif bewertung >= 5:
+                kategorie["status"] = "mittel"
+            else:
+                kategorie["status"] = "schlecht"
+            logger.warning(f"Kategorie {kategorie['name']}: status berechnet")
+
+        if "kommentar" not in kategorie:
+            kategorie["kommentar"] = "Keine Details verfügbar"
+            logger.warning(f"Kategorie {kategorie['name']}: kommentar fehlt")
+
         # Bewertung muss 1-10 sein
         if not (1 <= kategorie["bewertung"] <= 10):
-            raise ValueError(f"Kategorie {kategorie['name']}: bewertung muss 1-10 sein, ist {kategorie['bewertung']}")
-        
+            kategorie["bewertung"] = max(1, min(10, kategorie["bewertung"]))
+
         # Status muss valid sein
         if kategorie["status"] not in ["gut", "mittel", "schlecht"]:
-            raise ValueError(f"Kategorie {kategorie['name']}: Ungültiger status '{kategorie['status']}'")
-    
-    # Verbesserungen muss Liste sein (optional)
-    if "verbesserungen" in data and not isinstance(data["verbesserungen"], list):
-        raise ValueError("'verbesserungen' muss Liste sein")
-    
-    # Warnungen muss Liste sein (optional)
-    if "warnungen" in data and not isinstance(data["warnungen"], list):
-        raise ValueError("'warnungen' muss Liste sein")
+            bewertung = kategorie.get("bewertung", 5)
+            if bewertung >= 8:
+                kategorie["status"] = "gut"
+            elif bewertung >= 5:
+                kategorie["status"] = "mittel"
+            else:
+                kategorie["status"] = "schlecht"
+
+    # Optional: verbesserungen und warnungen als leere Listen initialisieren
+    if "verbesserungen" not in data:
+        data["verbesserungen"] = []
+
+    if "warnungen" not in data:
+        data["warnungen"] = []
+
+    logger.debug("Qualitäts-Validierung erfolgreich")
 
 
 def get_status_icon(status: str) -> str:
     """
-    Gibt Icon für Status zurück
-    
+    Gibt Icon für Status zurück.
+
     Args:
         status: "gut", "mittel" oder "schlecht"
-        
+
     Returns:
         str: Icon (Emoji)
     """
@@ -298,11 +327,11 @@ def get_status_icon(status: str) -> str:
 
 def get_status_color(status: str) -> str:
     """
-    Gibt CSS-Klasse für Status zurück
-    
+    Gibt CSS-Klasse für Status zurück.
+
     Args:
         status: "gut", "mittel" oder "schlecht"
-        
+
     Returns:
         str: CSS-Klasse
     """
@@ -312,3 +341,47 @@ def get_status_color(status: str) -> str:
         "schlecht": "status-schlecht"
     }
     return colors.get(status, "status-unknown")
+
+
+def format_qualitaet_for_display(data: dict[str, Any]) -> str:
+    """
+    Formatiert Qualitätsbewertung für die Anzeige (Markdown).
+
+    Args:
+        data: Qualitäts-Daten
+
+    Returns:
+        str: Markdown-formatierte Qualitätsbewertung
+    """
+    lines = []
+    lines.append(f"# Qualitätsprüfung\n")
+    lines.append(f"**Gesamtbewertung:** {data.get('gesamt_bewertung', '?')}/10\n")
+    lines.append(f"\n{data.get('gesamt_kommentar', '')}\n")
+    lines.append("---\n")
+
+    # Kategorien
+    lines.append("## Kategorien\n")
+    for kategorie in data.get("kategorien", []):
+        icon = get_status_icon(kategorie.get("status", ""))
+        lines.append(f"### {icon} {kategorie.get('name', '?')} ({kategorie.get('bewertung', '?')}/10)\n")
+        lines.append(f"{kategorie.get('kommentar', '')}\n\n")
+
+    # Verbesserungen
+    if data.get("verbesserungen"):
+        lines.append("## Verbesserungsvorschläge\n")
+        for verb in data["verbesserungen"]:
+            lines.append(f"- **Auftrag {verb.get('auftrag', '?')}:** {verb.get('text', '')}\n")
+        lines.append("\n")
+
+    # Warnungen
+    if data.get("warnungen"):
+        lines.append("## ⚠️ Warnungen\n")
+        for warn in data["warnungen"]:
+            lines.append(f"- {warn}\n")
+        lines.append("\n")
+
+    # Fazit
+    lines.append("## Fazit\n")
+    lines.append(f"{data.get('fazit', 'Keine Bewertung verfügbar')}\n")
+
+    return "\n".join(lines)

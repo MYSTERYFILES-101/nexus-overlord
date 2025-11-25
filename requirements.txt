@@ -15,6 +15,13 @@ httpx>=0.24.0
 # PDF Export
 reportlab>=4.0.0
 
+# Dokument-Extraktion (PDF/DOCX Upload)
+pdfplumber>=0.10.0
+python-docx>=1.0.0
+
+# Markdown Rendering
+markdown2>=2.4.0
+
 # Utilities
 python-dotenv>=1.0.0
 
