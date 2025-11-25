@@ -12,8 +12,8 @@ from app.services.openrouter import call_openrouter
 # Gemini 3 Pro - Stratege, Ueberblick, Pruefung
 MODEL_GEMINI = "google/gemini-3-pro-preview"
 
-# Claude Opus 4.5 - Detailarbeiter, Auftraege, Code (Upgrade von Sonnet)
-MODEL_OPUS = "anthropic/claude-opus-4-5-20251101"
+# Claude Opus 4 - Detailarbeiter, Auftraege, Code (OpenRouter ID)
+MODEL_OPUS = "anthropic/claude-opus-4"
 
 # Alias fuer Abwaertskompatibilitaet
 MODEL_SONNET = MODEL_OPUS
