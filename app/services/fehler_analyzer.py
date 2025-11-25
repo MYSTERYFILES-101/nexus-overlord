@@ -1,121 +1,177 @@
 """
-NEXUS OVERLORD v2.0 - Fehler Analyzer (Auftrag 4.3)
-Analysiert Fehler mit Gemini 3 Pro und erstellt Loesungs-Auftraege mit Opus 4.5
+NEXUS OVERLORD v2.0 - Fehler Analyzer (Auftrag 4.3 + 5.1)
+
+Analysiert Fehler mit Gemini 3 Pro und erstellt Loesungs-Auftraege mit Opus 4.5.
+Erweitert mit automatischer Kategorisierung, Severity-Erkennung und Tags.
 """
 
 import json
+import logging
 import re
+
 from app.services.openrouter import get_client
-from app.services.database import search_fehler, save_fehler, increment_fehler_count
+from app.services.database import (
+    search_fehler, save_fehler, increment_fehler_count,
+    increment_similar_count
+)
+from app.utils.fehler_helper import (
+    detect_category, detect_severity, extract_tags,
+    detect_fix_command, analyze_fehler as helper_analyze
+)
+
+# Logger
+logger = logging.getLogger(__name__)
 
 
-def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD") -> dict:
+def analyze_fehler(fehler_text: str, projekt_name: str = "NEXUS OVERLORD", projekt_id: int | None = None) -> dict:
     """
     Analysiert einen Fehler und gibt Loesung zurueck.
 
     Workflow:
-    1. Pruefe Fehler-Datenbank nach bekanntem Muster
-    2. Falls bekannt → Loesung aus DB
-    3. Falls neu → Gemini 3 Pro analysiert, Opus 4.5 erstellt Loesungs-Auftrag
+    1. Automatische Kategorisierung und Severity-Erkennung
+    2. Pruefe Fehler-Datenbank nach bekanntem Muster
+    3. Falls bekannt -> Loesung aus DB + Similar-Count erhoehen
+    4. Falls neu -> Gemini 3 Pro analysiert, Opus 4.5 erstellt Loesungs-Auftrag
+    5. Speichere mit erweiterten Metadaten (Severity, Tags, Stack-Trace)
 
     Args:
         fehler_text: Fehler-Text vom User
         projekt_name: Name des Projekts
+        projekt_id: Optional - Projekt-ID fuer Verknuepfung
 
     Returns:
-        dict: {
-            'bekannt': bool,
-            'kategorie': str,
-            'ursache': str,
-            'loesung': str,
-            'auftrag': str,
-            'fehler_id': int
-        }
+        dict: Erweiterte Fehler-Analyse mit Severity, Tags, etc.
     """
+    logger.info(f"Analysiere Fehler fuer Projekt: {projekt_name}")
+
+    # 0. Automatische Vor-Analyse mit Helper
+    auto_analyse = helper_analyze(fehler_text, projekt_id)
+    kategorie = auto_analyse['kategorie']
+    severity = auto_analyse['severity']
+    tags = auto_analyse['tags']
+    fix_command = auto_analyse['fix_command']
+
+    logger.debug(f"Auto-Analyse: Kategorie={kategorie}, Severity={severity}, Tags={tags}")
 
     # 1. Pruefe Fehler-Datenbank
     bekannter_fehler = search_fehler(fehler_text)
 
     if bekannter_fehler:
         # Bekannter Fehler gefunden!
+        logger.info(f"Bekannter Fehler gefunden: ID {bekannter_fehler['id']}")
         increment_fehler_count(bekannter_fehler['id'])
+
+        # Wenn aehnlicher aber nicht exakt gleicher Fehler
+        if bekannter_fehler.get('muster') not in fehler_text:
+            increment_similar_count(bekannter_fehler['id'])
 
         return {
             'bekannt': True,
-            'kategorie': bekannter_fehler.get('kategorie', 'unknown'),
+            'kategorie': bekannter_fehler.get('kategorie', kategorie),
+            'severity': bekannter_fehler.get('severity', severity),
+            'status': bekannter_fehler.get('status', 'aktiv'),
+            'tags': bekannter_fehler.get('tags_list', tags),
             'ursache': f"Bekannter Fehler (#{bekannter_fehler['id']})",
             'loesung': bekannter_fehler['loesung'],
+            'fix_command': bekannter_fehler.get('fix_command', fix_command),
             'auftrag': _create_quick_auftrag(bekannter_fehler),
             'fehler_id': bekannter_fehler['id'],
             'erfolgsrate': bekannter_fehler.get('erfolgsrate', 0),
-            'anzahl': bekannter_fehler.get('anzahl', 1)
+            'anzahl': bekannter_fehler.get('anzahl', 1),
+            'similar_count': bekannter_fehler.get('similar_count', 0)
         }
 
-    # 2. Neuer Fehler → KI-Analyse
+    # 2. Neuer Fehler -> KI-Analyse
     try:
+        logger.info("Neuer Fehler - starte KI-Analyse")
+
         # Gemini 3 Pro analysiert den Fehler
-        analyse = _analyze_with_gemini(fehler_text)
+        ki_analyse = _analyze_with_gemini(fehler_text)
+
+        # Kombiniere KI-Analyse mit Auto-Analyse
+        final_kategorie = ki_analyse.get('kategorie', kategorie)
+        final_severity = detect_severity(fehler_text, final_kategorie)
 
         # Opus 4.5 erstellt Loesungs-Auftrag
-        auftrag = _create_auftrag_with_opus(fehler_text, analyse, projekt_name)
+        auftrag = _create_auftrag_with_opus(fehler_text, ki_analyse, projekt_name)
 
-        # Fehler in Datenbank speichern
+        # Fehler in Datenbank speichern (erweitert)
         fehler_id = save_fehler(
-            muster=analyse.get('muster', fehler_text[:100]),
-            kategorie=analyse.get('kategorie', 'unknown'),
-            loesung=analyse.get('loesung', 'Keine Loesung gefunden')
+            muster=ki_analyse.get('muster', fehler_text[:100]),
+            kategorie=final_kategorie,
+            loesung=ki_analyse.get('loesung', 'Keine Loesung gefunden'),
+            projekt_id=projekt_id,
+            severity=final_severity,
+            tags=tags,
+            stack_trace=fehler_text if len(fehler_text) > 200 else None,
+            fix_command=ki_analyse.get('fix_command', fix_command)
         )
+
+        logger.info(f"Neuer Fehler gespeichert mit ID: {fehler_id}")
 
         return {
             'bekannt': False,
-            'kategorie': analyse.get('kategorie', 'unknown'),
-            'ursache': analyse.get('ursache', 'Unbekannt'),
-            'loesung': analyse.get('loesung', 'Keine Loesung gefunden'),
+            'kategorie': final_kategorie,
+            'severity': final_severity,
+            'status': 'aktiv',
+            'tags': tags,
+            'ursache': ki_analyse.get('ursache', 'Unbekannt'),
+            'loesung': ki_analyse.get('loesung', 'Keine Loesung gefunden'),
+            'fix_command': ki_analyse.get('fix_command', fix_command),
             'auftrag': auftrag,
             'fehler_id': fehler_id,
             'erfolgsrate': 100,
-            'anzahl': 1
+            'anzahl': 1,
+            'similar_count': 0
         }
 
     except Exception as e:
-        # Fallback bei API-Fehler
+        logger.error(f"KI-Analyse fehlgeschlagen: {e}")
+
+        # Fallback bei API-Fehler - nutze Auto-Analyse
         return {
             'bekannt': False,
-            'kategorie': 'error',
+            'kategorie': kategorie,
+            'severity': severity,
+            'status': 'aktiv',
+            'tags': tags,
             'ursache': f'Analyse fehlgeschlagen: {str(e)}',
             'loesung': _get_fallback_loesung(fehler_text),
-            'auftrag': _get_fallback_auftrag(fehler_text),
+            'fix_command': fix_command,
+            'auftrag': _get_fallback_auftrag(fehler_text, kategorie, severity),
             'fehler_id': None,
             'erfolgsrate': 0,
-            'anzahl': 0
+            'anzahl': 0,
+            'similar_count': 0
         }
 
 
 def _analyze_with_gemini(fehler_text: str) -> dict:
     """
-    Analysiert Fehler mit Gemini 3 Pro
+    Analysiert Fehler mit Gemini 3 Pro.
 
     Args:
         fehler_text: Fehler-Text
 
     Returns:
-        dict: Analyse-Ergebnis
+        dict: Analyse-Ergebnis mit Kategorie, Ursache, Loesung, Muster, Fix-Command
     """
     client = get_client()
 
     prompt = f"""Du bist ein Fehler-Analyst fuer Software-Entwicklung.
 
 Analysiere diesen Fehler und gib zurueck:
-1. Kategorie (python, npm, permission, database, network, syntax, config, etc.)
-2. Ursache (kurz und praezise)
-3. Loesung (Schritt fuer Schritt)
-4. Muster (fuer zukuenftige Erkennung, z.B. "ModuleNotFoundError", "EACCES", etc.)
+1. Kategorie: python, npm, permission, database, network, dependency, config, git, docker, other
+2. Ursache: Kurz und praezise (1-2 Saetze)
+3. Loesung: Schritt fuer Schritt (nummeriert)
+4. Muster: Fuer zukuenftige Erkennung (z.B. "ModuleNotFoundError", "EACCES")
+5. Fix-Command: Konkreter Befehl falls moeglich (z.B. "pip install flask")
 
 Fehler-Text:
 {fehler_text}
 
 Antworte NUR mit einem JSON-Objekt (keine Erklaerungen):
-{{"kategorie": "...", "ursache": "...", "loesung": "...", "muster": "..."}}"""
+{{"kategorie": "...", "ursache": "...", "loesung": "...", "muster": "...", "fix_command": "..."}}"""
 
     messages = [{"role": "user", "content": prompt}]
 
@@ -123,24 +179,24 @@ Antworte NUR mit einem JSON-Objekt (keine Erklaerungen):
 
     # JSON aus Antwort extrahieren
     try:
-        # Versuche JSON zu parsen
         json_match = re.search(r'\{[^{}]*\}', response, re.DOTALL)
         if json_match:
             return json.loads(json_match.group())
         return json.loads(response)
     except json.JSONDecodeError:
-        # Fallback: Manuell parsen
+        logger.warning("JSON-Parsing fehlgeschlagen, nutze Fallback")
         return {
-            'kategorie': _extract_kategorie(fehler_text),
+            'kategorie': detect_category(fehler_text),
             'ursache': 'Konnte nicht automatisch analysiert werden',
             'loesung': response,
-            'muster': fehler_text[:50]
+            'muster': fehler_text[:50],
+            'fix_command': detect_fix_command(fehler_text)
         }
 
 
 def _create_auftrag_with_opus(fehler_text: str, analyse: dict, projekt_name: str) -> str:
     """
-    Erstellt Loesungs-Auftrag mit Opus 4.5
+    Erstellt Loesungs-Auftrag mit Opus 4.5.
 
     Args:
         fehler_text: Original Fehler-Text
@@ -155,23 +211,24 @@ def _create_auftrag_with_opus(fehler_text: str, analyse: dict, projekt_name: str
     prompt = f"""Erstelle einen kurzen, praezisen Loesungs-Auftrag fuer Claude Code.
 
 FEHLER:
-{fehler_text}
+{fehler_text[:1000]}
 
 ANALYSE:
 - Kategorie: {analyse.get('kategorie', 'unknown')}
 - Ursache: {analyse.get('ursache', 'Unbekannt')}
 - Loesung: {analyse.get('loesung', 'Keine')}
+- Fix-Command: {analyse.get('fix_command', 'Keiner')}
 
 Erstelle einen Auftrag im folgenden Format:
 
 ═══════════════════════════════════════════════════════════════
-🔧 FEHLER-LOeSUNG
+🔧 FEHLER-LOESUNG
 ═══════════════════════════════════════════════════════════════
 
 📋 PROBLEM
 [Kurze Beschreibung des Problems]
 
-📋 LOeSUNG
+📋 LOESUNG
 [Nummerierte Schritte zur Loesung]
 
 📋 BEFEHLE
@@ -192,7 +249,7 @@ Halte es kurz und praezise. Nur das Noetigste."""
 
 def _create_quick_auftrag(fehler: dict) -> str:
     """
-    Erstellt schnellen Auftrag aus bekanntem Fehler
+    Erstellt schnellen Auftrag aus bekanntem Fehler.
 
     Args:
         fehler: Fehler aus Datenbank
@@ -200,54 +257,58 @@ def _create_quick_auftrag(fehler: dict) -> str:
     Returns:
         str: Formatierter Auftrag
     """
+    severity_icon = {
+        'critical': '🔴',
+        'high': '🟠',
+        'medium': '🟡',
+        'low': '🟢'
+    }.get(fehler.get('severity', 'medium'), '🟡')
+
+    tags_str = ', '.join(fehler.get('tags_list', [])) if fehler.get('tags_list') else 'Keine'
+
+    fix_cmd = fehler.get('fix_command', '')
+    fix_section = f"""
+📋 FIX-BEFEHL
+```bash
+{fix_cmd}
+```
+""" if fix_cmd else ""
+
     return f"""═══════════════════════════════════════════════════════════════
-🔧 BEKANNTE LOeSUNG (#{fehler['id']})
+🔧 BEKANNTE LOESUNG (#{fehler['id']})
 ═══════════════════════════════════════════════════════════════
 
 📋 KATEGORIE
 {fehler.get('kategorie', 'Unbekannt')}
 
-📋 LOeSUNG
-{fehler['loesung']}
+{severity_icon} SEVERITY
+{fehler.get('severity', 'medium').upper()}
 
+🏷️ TAGS
+{tags_str}
+
+📋 LOESUNG
+{fehler['loesung']}
+{fix_section}
 📊 STATISTIK
 - Erfolgsrate: {fehler.get('erfolgsrate', 0):.0f}%
 - Bereits {fehler.get('anzahl', 1)}x aufgetreten
+- Aehnliche Fehler: {fehler.get('similar_count', 0)}
 
 ═══════════════════════════════════════════════════════════════"""
 
 
-def _extract_kategorie(fehler_text: str) -> str:
-    """
-    Extrahiert Kategorie aus Fehler-Text (Fallback)
-    """
-    text_lower = fehler_text.lower()
-
-    if any(x in text_lower for x in ['python', 'traceback', 'importerror', 'modulenotfound']):
-        return 'python'
-    elif any(x in text_lower for x in ['npm', 'node', 'package.json', 'enoent']):
-        return 'npm'
-    elif any(x in text_lower for x in ['permission', 'eacces', 'denied', 'sudo']):
-        return 'permission'
-    elif any(x in text_lower for x in ['sql', 'database', 'sqlite', 'mysql']):
-        return 'database'
-    elif any(x in text_lower for x in ['network', 'connection', 'timeout', 'refused']):
-        return 'network'
-    elif any(x in text_lower for x in ['syntax', 'unexpected', 'parse']):
-        return 'syntax'
-    elif any(x in text_lower for x in ['config', 'env', 'environment']):
-        return 'config'
-    elif any(x in text_lower for x in ['git', 'commit', 'merge', 'push']):
-        return 'git'
-    else:
-        return 'unknown'
-
-
 def _get_fallback_loesung(fehler_text: str) -> str:
     """
-    Generiert Fallback-Loesung basierend auf Fehler-Kategorie
+    Generiert Fallback-Loesung basierend auf Fehler-Kategorie.
+
+    Args:
+        fehler_text: Fehlertext
+
+    Returns:
+        str: Fallback-Loesungsschritte
     """
-    kategorie = _extract_kategorie(fehler_text)
+    kategorie = detect_category(fehler_text)
 
     fallbacks = {
         'python': '1. Pruefe die Python-Version (python --version)\n2. Installiere fehlende Module (pip install <modul>)\n3. Pruefe Imports und Pfade',
@@ -255,19 +316,42 @@ def _get_fallback_loesung(fehler_text: str) -> str:
         'permission': '1. Pruefe Datei-Berechtigungen (ls -la)\n2. Nutze sudo falls noetig\n3. Pruefe Benutzer und Gruppe',
         'database': '1. Pruefe Datenbank-Verbindung\n2. Pruefe SQL-Syntax\n3. Pruefe ob Tabellen existieren',
         'network': '1. Pruefe Netzwerk-Verbindung\n2. Pruefe Firewall-Einstellungen\n3. Pruefe ob Service laeuft',
-        'syntax': '1. Pruefe Syntax des Codes\n2. Suche nach fehlenden Klammern/Anfuehrungszeichen\n3. Pruefe Einrueckung (bei Python)',
+        'dependency': '1. Installiere fehlende Abhaengigkeit\n2. Pruefe Version der Abhaengigkeit\n3. Pruefe Kompatibilitaet',
         'config': '1. Pruefe .env Datei\n2. Pruefe Umgebungsvariablen\n3. Pruefe Konfigurationsdateien',
-        'git': '1. Pruefe git status\n2. Loese Konflikte falls vorhanden\n3. Pruefe remote URL'
+        'git': '1. Pruefe git status\n2. Loese Konflikte falls vorhanden\n3. Pruefe remote URL',
+        'docker': '1. Pruefe Docker-Status (docker ps)\n2. Pruefe Logs (docker logs <container>)\n3. Pruefe Dockerfile',
+        'other': '1. Analysiere den Fehler genauer\n2. Suche online nach der Fehlermeldung\n3. Pruefe die Dokumentation'
     }
 
-    return fallbacks.get(kategorie, '1. Analysiere den Fehler genauer\n2. Suche online nach der Fehlermeldung\n3. Pruefe die Dokumentation')
+    return fallbacks.get(kategorie, fallbacks['other'])
 
 
-def _get_fallback_auftrag(fehler_text: str) -> str:
+def _get_fallback_auftrag(fehler_text: str, kategorie: str, severity: str) -> str:
     """
-    Generiert Fallback-Auftrag
+    Generiert Fallback-Auftrag mit erweiterten Informationen.
+
+    Args:
+        fehler_text: Fehlertext
+        kategorie: Erkannte Kategorie
+        severity: Erkannte Severity
+
+    Returns:
+        str: Formatierter Fallback-Auftrag
     """
-    kategorie = _extract_kategorie(fehler_text)
+    severity_icon = {
+        'critical': '🔴',
+        'high': '🟠',
+        'medium': '🟡',
+        'low': '🟢'
+    }.get(severity, '🟡')
+
+    fix_command = detect_fix_command(fehler_text, kategorie)
+    fix_section = f"""
+📋 MOEGLICHER FIX
+```bash
+{fix_command}
+```
+""" if fix_command else ""
 
     return f"""═══════════════════════════════════════════════════════════════
 🔧 FEHLER-ANALYSE (Fallback)
@@ -276,9 +360,12 @@ def _get_fallback_auftrag(fehler_text: str) -> str:
 📋 KATEGORIE
 {kategorie}
 
+{severity_icon} SEVERITY
+{severity.upper()}
+
 📋 EMPFOHLENE SCHRITTE
 {_get_fallback_loesung(fehler_text)}
-
+{fix_section}
 📋 FEHLER-TEXT
 {fehler_text[:500]}{'...' if len(fehler_text) > 500 else ''}
 

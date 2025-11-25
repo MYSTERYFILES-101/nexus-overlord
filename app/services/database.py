@@ -466,7 +466,7 @@ def get_projekt_stats(projekt_id: int) -> dict:
 
 
 # ========================================
-# FEHLER-FUNKTIONEN
+# FEHLER-FUNKTIONEN (Erweitert v2.0)
 # ========================================
 
 def search_fehler(fehler_text: str) -> dict | None:
@@ -497,7 +497,14 @@ def search_fehler(fehler_text: str) -> dict | None:
 
         if row:
             logger.debug(f"Bekannter Fehler gefunden: ID {row['id']}")
-            return dict(row)
+            fehler = dict(row)
+            # Tags parsen wenn vorhanden
+            if fehler.get('tags'):
+                try:
+                    fehler['tags_list'] = json.loads(fehler['tags'])
+                except json.JSONDecodeError:
+                    fehler['tags_list'] = []
+            return fehler
         return None
 
     except sqlite3.Error as e:
@@ -505,28 +512,53 @@ def search_fehler(fehler_text: str) -> dict | None:
         return None
 
 
-def save_fehler(muster: str, kategorie: str, loesung: str) -> int:
+def save_fehler(
+    muster: str,
+    kategorie: str,
+    loesung: str,
+    projekt_id: int | None = None,
+    severity: str = "medium",
+    tags: list[str] | None = None,
+    stack_trace: str | None = None,
+    fix_command: str | None = None
+) -> int:
     """
-    Speichert neuen Fehler in der Datenbank.
+    Speichert neuen Fehler in der Datenbank (erweitert).
 
     Args:
         muster: Fehler-Muster fuer zukuenftige Erkennung
         kategorie: Fehler-Kategorie (python, npm, permission, etc.)
         loesung: Loesung fuer den Fehler
+        projekt_id: Optional - Verknuepftes Projekt
+        severity: Schweregrad (critical, high, medium, low)
+        tags: Optional - Tags als Liste
+        stack_trace: Optional - Vollstaendiger Stack-Trace
+        fix_command: Optional - Konkreter Fix-Befehl
 
     Returns:
         int: Fehler-ID
     """
-    logger.info(f"Speichere neuen Fehler: Kategorie={kategorie}")
+    logger.info(f"Speichere neuen Fehler: Kategorie={kategorie}, Severity={severity}")
 
     try:
         conn = get_db()
         cursor = conn.cursor()
 
+        tags_json = json.dumps(tags) if tags else "[]"
+        now = datetime.now().isoformat()
+
         cursor.execute("""
-            INSERT INTO fehler (muster, kategorie, loesung, erfolgsrate, anzahl, created_at)
-            VALUES (?, ?, ?, 100, 1, datetime('now'))
-        """, (muster, kategorie, loesung))
+            INSERT INTO fehler (
+                muster, kategorie, loesung, erfolgsrate, anzahl,
+                projekt_id, severity, status, tags, stack_trace,
+                fix_command, similar_count, last_seen, created_at, updated_at
+            )
+            VALUES (?, ?, ?, 100, 1, ?, ?, 'aktiv', ?, ?, ?, 0, ?, ?, ?)
+        """, (
+            muster, kategorie, loesung,
+            projekt_id, severity, tags_json, stack_trace,
+            fix_command, now, now, now
+        ))
 
         fehler_id = cursor.lastrowid
         conn.commit()
@@ -542,7 +574,7 @@ def save_fehler(muster: str, kategorie: str, loesung: str) -> int:
 
 def increment_fehler_count(fehler_id: int) -> None:
     """
-    Erhoeht den Zaehler fuer einen bekannten Fehler.
+    Erhoeht den Zaehler fuer einen bekannten Fehler und aktualisiert last_seen.
 
     Args:
         fehler_id: Fehler-ID
@@ -553,7 +585,9 @@ def increment_fehler_count(fehler_id: int) -> None:
 
         cursor.execute("""
             UPDATE fehler
-            SET anzahl = anzahl + 1
+            SET anzahl = anzahl + 1,
+                last_seen = datetime('now'),
+                updated_at = datetime('now')
             WHERE id = ?
         """, (fehler_id,))
 
@@ -564,6 +598,33 @@ def increment_fehler_count(fehler_id: int) -> None:
 
     except sqlite3.Error as e:
         logger.error(f"Fehler beim Erhoehen des Zaehlers fuer Fehler {fehler_id}: {e}")
+
+
+def increment_similar_count(fehler_id: int) -> None:
+    """
+    Erhoeht den Similar-Counter fuer einen Fehler.
+
+    Args:
+        fehler_id: Fehler-ID
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE fehler
+            SET similar_count = similar_count + 1,
+                updated_at = datetime('now')
+            WHERE id = ?
+        """, (fehler_id,))
+
+        conn.commit()
+        conn.close()
+
+        logger.debug(f"Fehler {fehler_id} Similar-Count erhoeht")
+
+    except sqlite3.Error as e:
+        logger.error(f"Fehler beim Erhoehen des Similar-Counts fuer Fehler {fehler_id}: {e}")
 
 
 def update_fehler_erfolgsrate(fehler_id: int, erfolg: bool) -> None:
@@ -590,7 +651,8 @@ def update_fehler_erfolgsrate(fehler_id: int, erfolg: bool) -> None:
 
             cursor.execute("""
                 UPDATE fehler
-                SET erfolgsrate = ?
+                SET erfolgsrate = ?,
+                    updated_at = datetime('now')
                 WHERE id = ?
             """, (neue_rate, fehler_id))
 
@@ -603,9 +665,165 @@ def update_fehler_erfolgsrate(fehler_id: int, erfolg: bool) -> None:
         logger.error(f"Fehler beim Aktualisieren der Erfolgsrate fuer Fehler {fehler_id}: {e}")
 
 
+def update_fehler_status(fehler_id: int, status: str) -> bool:
+    """
+    Aktualisiert den Status eines Fehlers.
+
+    Args:
+        fehler_id: Fehler-ID
+        status: Neuer Status ('aktiv', 'geloest', 'veraltet')
+
+    Returns:
+        bool: True wenn erfolgreich
+    """
+    if status not in ['aktiv', 'geloest', 'veraltet']:
+        logger.warning(f"Ungueltiger Fehler-Status: {status}")
+        return False
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE fehler
+            SET status = ?,
+                updated_at = datetime('now')
+            WHERE id = ?
+        """, (status, fehler_id))
+
+        affected = cursor.rowcount
+        conn.commit()
+        conn.close()
+
+        if affected > 0:
+            logger.info(f"Fehler {fehler_id} Status geaendert auf '{status}'")
+        return affected > 0
+
+    except sqlite3.Error as e:
+        logger.error(f"Fehler beim Aktualisieren des Status fuer Fehler {fehler_id}: {e}")
+        return False
+
+
+def get_fehler_by_kategorie(kategorie: str, limit: int = 20) -> list[dict]:
+    """
+    Holt alle Fehler einer Kategorie.
+
+    Args:
+        kategorie: Fehler-Kategorie
+        limit: Max Anzahl Ergebnisse
+
+    Returns:
+        list[dict]: Liste der Fehler
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT * FROM fehler
+            WHERE kategorie = ?
+            ORDER BY anzahl DESC, erfolgsrate DESC
+            LIMIT ?
+        """, (kategorie, limit))
+
+        fehler = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        # Tags parsen
+        for f in fehler:
+            if f.get('tags'):
+                try:
+                    f['tags_list'] = json.loads(f['tags'])
+                except json.JSONDecodeError:
+                    f['tags_list'] = []
+
+        return fehler
+
+    except sqlite3.Error as e:
+        logger.error(f"Fehler beim Laden der Fehler fuer Kategorie {kategorie}: {e}")
+        return []
+
+
+def get_fehler_by_severity(severity: str, limit: int = 20) -> list[dict]:
+    """
+    Holt alle Fehler eines Severity-Levels.
+
+    Args:
+        severity: Severity-Level (critical, high, medium, low)
+        limit: Max Anzahl Ergebnisse
+
+    Returns:
+        list[dict]: Liste der Fehler
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT * FROM fehler
+            WHERE severity = ?
+            ORDER BY anzahl DESC, last_seen DESC
+            LIMIT ?
+        """, (severity, limit))
+
+        fehler = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        return fehler
+
+    except sqlite3.Error as e:
+        logger.error(f"Fehler beim Laden der Fehler fuer Severity {severity}: {e}")
+        return []
+
+
+def get_fehler_by_tags(tags: list[str], limit: int = 20) -> list[dict]:
+    """
+    Holt Fehler die bestimmte Tags enthalten.
+
+    Args:
+        tags: Liste von Tags zum Suchen
+        limit: Max Anzahl Ergebnisse
+
+    Returns:
+        list[dict]: Liste der Fehler
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Baue LIKE-Bedingungen fuer jeden Tag
+        conditions = " OR ".join(["tags LIKE ?" for _ in tags])
+        params = [f'%"{tag}"%' for tag in tags]
+        params.append(limit)
+
+        cursor.execute(f"""
+            SELECT * FROM fehler
+            WHERE {conditions}
+            ORDER BY anzahl DESC
+            LIMIT ?
+        """, params)
+
+        fehler = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        # Tags parsen
+        for f in fehler:
+            if f.get('tags'):
+                try:
+                    f['tags_list'] = json.loads(f['tags'])
+                except json.JSONDecodeError:
+                    f['tags_list'] = []
+
+        return fehler
+
+    except sqlite3.Error as e:
+        logger.error(f"Fehler beim Laden der Fehler fuer Tags {tags}: {e}")
+        return []
+
+
 def get_fehler_stats() -> dict:
     """
-    Gibt Fehler-Statistiken zurueck.
+    Gibt erweiterte Fehler-Statistiken zurueck.
 
     Returns:
         dict: Statistiken ueber Fehler
@@ -614,12 +832,14 @@ def get_fehler_stats() -> dict:
         conn = get_db()
         cursor = conn.cursor()
 
+        # Gesamt-Zahlen
         cursor.execute("SELECT COUNT(*) as total FROM fehler")
         total = cursor.fetchone()['total']
 
         cursor.execute("SELECT AVG(erfolgsrate) as avg_rate FROM fehler")
         avg_rate = cursor.fetchone()['avg_rate'] or 0
 
+        # Nach Kategorie
         cursor.execute("""
             SELECT kategorie, COUNT(*) as count
             FROM fehler
@@ -628,17 +848,110 @@ def get_fehler_stats() -> dict:
         """)
         kategorien = {row['kategorie']: row['count'] for row in cursor.fetchall()}
 
+        # Nach Severity
+        cursor.execute("""
+            SELECT severity, COUNT(*) as count
+            FROM fehler
+            WHERE severity IS NOT NULL
+            GROUP BY severity
+        """)
+        severities = {row['severity']: row['count'] for row in cursor.fetchall()}
+
+        # Nach Status
+        cursor.execute("""
+            SELECT status, COUNT(*) as count
+            FROM fehler
+            WHERE status IS NOT NULL
+            GROUP BY status
+        """)
+        statuses = {row['status']: row['count'] for row in cursor.fetchall()}
+
+        # Aktive kritische Fehler
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM fehler
+            WHERE severity = 'critical' AND status = 'aktiv'
+        """)
+        critical_aktiv = cursor.fetchone()['count']
+
+        # Letzte 7 Tage
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM fehler
+            WHERE created_at > datetime('now', '-7 days')
+        """)
+        letzte_7_tage = cursor.fetchone()['count']
+
         conn.close()
 
         return {
             'total': total,
             'avg_erfolgsrate': round(avg_rate, 1),
-            'kategorien': kategorien
+            'kategorien': kategorien,
+            'severities': severities,
+            'statuses': statuses,
+            'critical_aktiv': critical_aktiv,
+            'letzte_7_tage': letzte_7_tage
         }
 
     except sqlite3.Error as e:
         logger.error(f"Fehler beim Ermitteln der Fehler-Stats: {e}")
-        return {'total': 0, 'avg_erfolgsrate': 0, 'kategorien': {}}
+        return {
+            'total': 0, 'avg_erfolgsrate': 0, 'kategorien': {},
+            'severities': {}, 'statuses': {}, 'critical_aktiv': 0, 'letzte_7_tage': 0
+        }
+
+
+def migrate_fehler_table() -> bool:
+    """
+    Migriert die Fehler-Tabelle auf die neue Struktur (v2.0).
+
+    Fuegt neue Spalten hinzu falls sie nicht existieren.
+
+    Returns:
+        bool: True wenn Migration erfolgreich
+    """
+    logger.info("Starte Fehler-Tabellen Migration...")
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Pruefe welche Spalten existieren
+        cursor.execute("PRAGMA table_info(fehler)")
+        existing_columns = {row['name'] for row in cursor.fetchall()}
+
+        # Neue Spalten definieren
+        new_columns = [
+            ("projekt_id", "INTEGER"),
+            ("severity", "TEXT DEFAULT 'medium'"),
+            ("status", "TEXT DEFAULT 'aktiv'"),
+            ("tags", "TEXT DEFAULT '[]'"),
+            ("stack_trace", "TEXT"),
+            ("fix_command", "TEXT"),
+            ("similar_count", "INTEGER DEFAULT 0"),
+            ("last_seen", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+            ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP")
+        ]
+
+        # Fehlende Spalten hinzufuegen
+        for col_name, col_type in new_columns:
+            if col_name not in existing_columns:
+                logger.info(f"Fuege Spalte hinzu: {col_name}")
+                cursor.execute(f"ALTER TABLE fehler ADD COLUMN {col_name} {col_type}")
+
+        # Index fuer neue Spalten
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_fehler_severity ON fehler(severity)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_fehler_status ON fehler(status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_fehler_projekt ON fehler(projekt_id)")
+
+        conn.commit()
+        conn.close()
+
+        logger.info("Fehler-Tabellen Migration abgeschlossen")
+        return True
+
+    except sqlite3.Error as e:
+        logger.error(f"Fehler bei Migration: {e}")
+        return False
 
 
 # ========================================
