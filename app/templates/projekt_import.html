@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan hochladen - NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Upload Zone Styles */
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 100%);
+            border-style: solid;
+        }
+
+        .upload-zone.has-file {
+            border-color: #22c55e;
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .upload-zone p {
+            margin: 0.3rem 0;
+            color: #64748b;
+        }
+
+        .upload-zone p:first-of-type {
+            font-weight: 600;
+            color: #334155;
+            font-size: 1.2rem;
+        }
+
+        .upload-zone small {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .file-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border: 1px solid #86efac;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-info strong {
+            color: #166534;
+        }
+
+        .import-info {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1px solid #93c5fd;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .import-info h3 {
+            color: #1e40af;
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .import-info ul {
+            margin: 0;
+            padding-left: 1.5rem;
+            color: #1e3a8a;
+        }
+
+        .import-info li {
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>&#x1F4E4; PLAN HOCHLADEN</h1>
+            <p>Fertigen Projektplan importieren</p>
+        </header>
+
+        <main>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">
+                                {% if category == 'success' %}&#x2705;{% elif category == 'error' %}&#x274C;{% else %}&#x2139;&#xFE0F;{% endif %}
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Formular -->
+            <div class="form-container">
+                <div class="form-box">
+                    <div class="form-header">
+                        <h2>Projektplan importieren</h2>
+                        <p>Lade einen fertigen Projektplan (DOCX oder PDF) hoch. Das System erstellt daraus direkt Auftraege - ohne den 6-Phasen-Workflow.</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('projekt.projekt_import_upload') }}" enctype="multipart/form-data" class="projekt-form" id="import-form">
+                        <!-- Projektname -->
+                        <div class="form-group">
+                            <label for="projektname">
+                                <span class="label-icon">&#x1F4DD;</span>
+                                Projektname
+                            </label>
+                            <input
+                                type="text"
+                                id="projektname"
+                                name="projektname"
+                                class="form-input"
+                                placeholder="z.B. Website-Relaunch, ERP-System, Mobile App..."
+                                maxlength="100"
+                            >
+                            <small class="form-hint">Optional - wird sonst aus dem Dateinamen abgeleitet</small>
+                        </div>
+
+                        <!-- Upload Zone -->
+                        <div class="form-group">
+                            <label>
+                                <span class="label-icon">&#x1F4C4;</span>
+                                Projektplan-Datei
+                                <span class="label-required">*</span>
+                            </label>
+                            <div class="upload-zone" id="upload-zone">
+                                <input type="file" id="datei" name="datei" accept=".docx,.pdf" hidden required>
+                                <span class="upload-icon">&#x1F4C1;</span>
+                                <p>DOCX oder PDF hier ablegen</p>
+                                <p>oder klicken zum Auswaehlen</p>
+                                <small>Max. 10 MB - Unterstuetzte Formate: .docx, .pdf</small>
+                            </div>
+                            <div class="file-info" id="file-info">
+                                <strong>&#x2705; Datei ausgewaehlt:</strong>
+                                <span id="file-name"></span>
+                                (<span id="file-size"></span>)
+                            </div>
+                        </div>
+
+                        <!-- Info-Box -->
+                        <div class="import-info">
+                            <h3>&#x2139;&#xFE0F; Was passiert nach dem Upload?</h3>
+                            <ul>
+                                <li>Der Plan wird analysiert und in Phasen aufgeteilt</li>
+                                <li>Opus 4.5 erkennt automatisch Aufgaben und Abhaengigkeiten</li>
+                                <li>Auftraege werden mit Regelwerk generiert</li>
+                                <li>Du kannst sofort mit der Arbeit beginnen</li>
+                            </ul>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="form-actions">
+                            <a href="/" class="btn btn-secondary">
+                                &#x2190; Abbrechen
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+                                &#x1F4E4; Plan importieren
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Powered by Opus 4.5</p>
+        </footer>
+    </div>
+
+    <script>
+        // Upload Zone Elements
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('datei');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // Click to open file dialog
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // Drag & Drop Events
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                // Check file type
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'docx' || ext === 'pdf') {
+                    fileInput.files = e.dataTransfer.files;
+                    showFileInfo(file);
+                } else {
+                    alert('Nur DOCX und PDF Dateien erlaubt!');
+                }
+            }
+        });
+
+        // File Select Event
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) showFileInfo(file);
+        });
+
+        // Show File Info
+        function showFileInfo(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('show');
+            uploadZone.classList.add('has-file');
+            submitBtn.disabled = false;
+        }
+
+        // Format File Size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan analysieren - NEXUS OVERLORD</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .analyse-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .analyse-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .analyse-header h2 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.5rem;
+        }
+
+        .analyse-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .analyse-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-box {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-box .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-box .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .stat-box .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .vorschau-box {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .vorschau-box h3 {
+            margin: 0 0 1rem 0;
+            color: #334155;
+        }
+
+        .vorschau-text {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #475569;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .placeholder-notice {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .placeholder-notice h3 {
+            color: #92400e;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .placeholder-notice p {
+            color: #78350f;
+            margin: 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>&#x1F50D; PLAN ANALYSIEREN</h1>
+            <p>Importierter Plan wird verarbeitet</p>
+        </header>
+
+        <main>
+            <div class="analyse-container">
+                <!-- Header -->
+                <div class="analyse-header">
+                    <h2>{{ projektname }}</h2>
+                    <p>{{ dateiname }}</p>
+                </div>
+
+                <!-- Stats -->
+                <div class="analyse-stats">
+                    <div class="stat-box">
+                        <div class="stat-icon">&#x1F4C4;</div>
+                        <div class="stat-value">{{ text_laenge }}</div>
+                        <div class="stat-label">Zeichen</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">&#x1F4DD;</div>
+                        <div class="stat-value">~{{ (text_laenge / 500) | int }}</div>
+                        <div class="stat-label">Woerter (ca.)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">&#x1F4D1;</div>
+                        <div class="stat-value">~{{ (text_laenge / 3000) | int + 1 }}</div>
+                        <div class="stat-label">Seiten (ca.)</div>
+                    </div>
+                </div>
+
+                <!-- Vorschau -->
+                <div class="vorschau-box">
+                    <h3>&#x1F441; Vorschau</h3>
+                    <div class="vorschau-text">{{ vorschau }}</div>
+                </div>
+
+                <!-- Placeholder Notice -->
+                <div class="placeholder-notice">
+                    <h3>&#x1F6A7; In Entwicklung</h3>
+                    <p>Die automatische Plan-Analyse wird in <strong>Auftrag 8.2</strong> implementiert. Der Plan wurde erfolgreich importiert und ist bereit fuer die Verarbeitung.</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="action-buttons">
+                    <a href="{{ url_for('projekt.projekt_import') }}" class="btn btn-secondary">
+                        &#x2190; Anderen Plan hochladen
+                    </a>
+                    <a href="/" class="btn btn-primary">
+                        &#x1F3E0; Zur Startseite
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>NEXUS OVERLORD v2.0 - Powered by Opus 4.5</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -469,3 +469,109 @@ def test_pdf():
             'Content-Length': str(len(pdf_bytes))
         }
     )
+
+
+# ========================================
+# PLAN IMPORT (Kachel 2)
+# ========================================
+
+@projekt_bp.route('/projekt/import')
+def projekt_import():
+    """
+    Zeigt die Plan-Import Seite an.
+    User kann einen fertigen Projektplan (DOCX/PDF) hochladen.
+    """
+    return render_template('projekt_import.html')
+
+
+@projekt_bp.route('/projekt/import/upload', methods=['POST'])
+def projekt_import_upload():
+    """
+    Verarbeitet den hochgeladenen Plan.
+    Extrahiert Text aus DOCX/PDF und speichert in Session.
+    """
+    from app.services.document_extractor import extract_text_from_file
+
+    # Projektname
+    projektname = request.form.get('projektname', '').strip()
+    if not projektname:
+        projektname = 'Importiertes Projekt'
+
+    # Datei pruefen
+    if 'datei' not in request.files:
+        flash('Keine Datei ausgewaehlt', 'error')
+        return redirect(url_for('projekt.projekt_import'))
+
+    datei = request.files['datei']
+    if datei.filename == '':
+        flash('Keine Datei ausgewaehlt', 'error')
+        return redirect(url_for('projekt.projekt_import'))
+
+    # Dateiendung pruefen
+    erlaubte_endungen = {'.docx', '.pdf'}
+    dateiname = datei.filename.lower()
+    if not any(dateiname.endswith(ext) for ext in erlaubte_endungen):
+        flash('Nur DOCX und PDF Dateien erlaubt', 'error')
+        return redirect(url_for('projekt.projekt_import'))
+
+    # Dateigroesse pruefen (max 10 MB)
+    datei.seek(0, 2)  # Ende der Datei
+    groesse = datei.tell()
+    datei.seek(0)  # Zurueck zum Anfang
+
+    if groesse > 10 * 1024 * 1024:
+        flash('Datei zu gross (max 10 MB)', 'error')
+        return redirect(url_for('projekt.projekt_import'))
+
+    try:
+        # Text extrahieren
+        text, error = extract_text_from_file(datei, datei.filename)
+
+        if error:
+            flash(f'Fehler: {error}', 'error')
+            return redirect(url_for('projekt.projekt_import'))
+
+        if not text or len(text.strip()) < 100:
+            flash('Konnte keinen Text aus der Datei extrahieren', 'error')
+            return redirect(url_for('projekt.projekt_import'))
+
+        # In Session speichern
+        session['import_projektname'] = projektname
+        session['import_plan_text'] = text
+        session['import_dateiname'] = datei.filename
+
+        logger.info(f"Plan importiert: {datei.filename} ({len(text)} Zeichen)")
+
+        # Weiterleitung zur Analyse
+        return redirect(url_for('projekt.projekt_import_analysieren'))
+
+    except Exception as e:
+        logger.error(f"Fehler beim Import: {e}")
+        flash(f'Fehler beim Verarbeiten: {str(e)}', 'error')
+        return redirect(url_for('projekt.projekt_import'))
+
+
+@projekt_bp.route('/projekt/import/analysieren')
+def projekt_import_analysieren():
+    """
+    Zeigt Analyse-Seite fuer importierten Plan.
+    Placeholder fuer Auftrag 8.2.
+    """
+    projektname = session.get('import_projektname', 'Unbekannt')
+    plan_text = session.get('import_plan_text', '')
+    dateiname = session.get('import_dateiname', '')
+
+    if not plan_text:
+        flash('Kein Plan zum Analysieren vorhanden', 'error')
+        return redirect(url_for('projekt.projekt_import'))
+
+    # Vorschau (erste 500 Zeichen)
+    vorschau = plan_text[:500] + '...' if len(plan_text) > 500 else plan_text
+
+    return render_template(
+        'projekt_import_analysieren.html',
+        projektname=projektname,
+        dateiname=dateiname,
+        text_laenge=len(plan_text),
+        vorschau=vorschau
+    )
