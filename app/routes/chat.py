@@ -1,7 +1,7 @@
 """
 NEXUS OVERLORD v2.0 - Chat Routes
 
-Chat-Funktionen für Projekt-Steuerung (Auftrag 4.6).
+Chat-Funktionen fuer Projekt-Steuerung (Auftrag 4.6).
 """
 
 import logging
@@ -17,7 +17,7 @@ chat_bp = Blueprint('chat', __name__)
 
 @chat_bp.route('/projekt/<int:projekt_id>/chat', methods=['GET'])
 def chat_history(projekt_id: int):
-    """Lädt Chat-Verlauf eines Projekts."""
+    """Laedt Chat-Verlauf eines Projekts."""
     from app.services.database import get_projekt, get_chat_messages
 
     projekt = get_projekt(projekt_id)
@@ -67,7 +67,7 @@ def chat_send(projekt_id: int):
 
 @chat_bp.route('/projekt/<int:projekt_id>/chat/log', methods=['POST'])
 def chat_log(projekt_id: int):
-    """Loggt eine System-Nachricht im Chat (für Button-Aktionen)."""
+    """Loggt eine System-Nachricht im Chat (fuer Button-Aktionen)."""
     from app.services.database import save_chat_message
 
     inhalt = request.form.get('inhalt', '').strip()

@@ -1,7 +1,7 @@
 """
-NEXUS OVERLORD v2.0 - Übergaben Routes
+NEXUS OVERLORD v2.0 - Uebergaben Routes
 
-Upload und Verwaltung von Übergabe-Dateien (Auftrag 4.5).
+Upload und Verwaltung von Uebergabe-Dateien (Auftrag 4.5).
 """
 
 import logging
@@ -23,7 +23,7 @@ MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
 
 def allowed_file(filename: str) -> bool:
     """
-    Prüft ob Dateiendung erlaubt ist.
+    Prueft ob Dateiendung erlaubt ist.
 
     Args:
         filename: Dateiname
@@ -36,7 +36,7 @@ def allowed_file(filename: str) -> bool:
 
 @uebergaben_bp.route('/projekt/<int:projekt_id>/uebergaben', methods=['GET'])
 def uebergaben_liste(projekt_id: int):
-    """Holt Liste aller Übergaben eines Projekts."""
+    """Holt Liste aller Uebergaben eines Projekts."""
     from app.services.database import get_projekt, get_projekt_uebergaben, get_current_auftrag_for_projekt
 
     projekt = get_projekt(projekt_id)
@@ -54,7 +54,7 @@ def uebergaben_liste(projekt_id: int):
 
 @uebergaben_bp.route('/projekt/<int:projekt_id>/uebergaben/upload', methods=['POST'])
 def uebergabe_upload(projekt_id: int):
-    """Lädt eine Übergabe-Datei hoch."""
+    """Laedt eine Uebergabe-Datei hoch."""
     from app.services.database import get_projekt, save_uebergabe, get_current_auftrag_for_projekt
 
     projekt = get_projekt(projekt_id)
@@ -67,18 +67,18 @@ def uebergabe_upload(projekt_id: int):
     file = request.files['file']
 
     if file.filename == '':
-        return jsonify({'success': False, 'error': 'Keine Datei ausgewählt'}), 400
+        return jsonify({'success': False, 'error': 'Keine Datei ausgewaehlt'}), 400
 
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'error': 'Dateityp nicht erlaubt'}), 400
 
-    # Dateigröße prüfen
+    # Dateigroesse pruefen
     file.seek(0, 2)
     size = file.tell()
     file.seek(0)
 
     if size > MAX_CONTENT_LENGTH:
-        return jsonify({'success': False, 'error': 'Datei zu groß. Max 5MB erlaubt.'}), 400
+        return jsonify({'success': False, 'error': 'Datei zu gross. Max 5MB erlaubt.'}), 400
 
     aktueller_auftrag = get_current_auftrag_for_projekt(projekt_id)
     auftrag_id = aktueller_auftrag['id'] if aktueller_auftrag else None
@@ -120,13 +120,13 @@ def uebergabe_upload(projekt_id: int):
 
 @uebergaben_bp.route('/projekt/<int:projekt_id>/uebergaben/<int:uebergabe_id>', methods=['GET'])
 def uebergabe_anzeigen(projekt_id: int, uebergabe_id: int):
-    """Zeigt Inhalt einer Übergabe an."""
+    """Zeigt Inhalt einer Uebergabe an."""
     from app.services.database import get_uebergabe
 
     uebergabe = get_uebergabe(uebergabe_id)
 
     if not uebergabe:
-        return jsonify({'success': False, 'error': 'Übergabe nicht gefunden'}), 404
+        return jsonify({'success': False, 'error': 'Uebergabe nicht gefunden'}), 404
 
     try:
         with open(uebergabe['datei_pfad'], 'r', encoding='utf-8') as f:
@@ -143,12 +143,12 @@ def uebergabe_anzeigen(projekt_id: int, uebergabe_id: int):
 
 @uebergaben_bp.route('/projekt/<int:projekt_id>/uebergaben/<int:uebergabe_id>/delete', methods=['POST'])
 def uebergabe_loeschen(projekt_id: int, uebergabe_id: int):
-    """Löscht eine Übergabe."""
+    """Loescht eine Uebergabe."""
     from app.services.database import delete_uebergabe
 
     success = delete_uebergabe(uebergabe_id)
 
     if success:
-        return jsonify({'success': True, 'message': 'Übergabe gelöscht'})
+        return jsonify({'success': True, 'message': 'Uebergabe geloescht'})
     else:
-        return jsonify({'success': False, 'error': 'Übergabe nicht gefunden'}), 404
+        return jsonify({'success': False, 'error': 'Uebergabe nicht gefunden'}), 404
