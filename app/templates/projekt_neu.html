@@ -5,12 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neues Projekt - NEXUS OVERLORD</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Upload Zone Styles */
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 100%);
+            border-style: solid;
+        }
+
+        .upload-zone.uploading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .upload-zone p {
+            margin: 0.3rem 0;
+            color: #64748b;
+        }
+
+        .upload-zone p:first-of-type {
+            font-weight: 600;
+            color: #334155;
+            font-size: 1.1rem;
+        }
+
+        .upload-zone small {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .upload-status {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .upload-status.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .upload-status.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .separator::before,
+        .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .separator span {
+            padding: 0 1rem;
+            background: transparent;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🆕 NEUES PROJEKT</h1>
-            <p>Multi-Agent Workflow für Enterprise-Planung</p>
+            <h1>&#x1F195; NEUES PROJEKT</h1>
+            <p>Multi-Agent Workflow fuer Enterprise-Planung</p>
         </header>
 
         <main>
@@ -20,7 +131,7 @@
                     <div class="flash-messages">
                         {% for category, message in messages %}
                             <div class="flash flash-{{ category }}">
-                                {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %}
+                                {% if category == 'success' %}&#x2705;{% elif category == 'error' %}&#x274C;{% else %}&#x2139;&#xFE0F;{% endif %}
                                 {{ message }}
                             </div>
                         {% endfor %}
@@ -40,7 +151,7 @@
                         <!-- Projektname -->
                         <div class="form-group">
                             <label for="projektname">
-                                <span class="label-icon">📝</span>
+                                <span class="label-icon">&#x1F4DD;</span>
                                 Projektname
                                 <span class="label-required">*</span>
                             </label>
@@ -54,13 +165,33 @@
                                 required
                                 maxlength="100"
                             >
-                            <small class="form-hint">Gib deinem Projekt einen aussagekräftigen Namen</small>
+                            <small class="form-hint">Gib deinem Projekt einen aussagekraeftigen Namen</small>
                         </div>
 
-                        <!-- Projektplan -->
+                        <!-- Upload Zone -->
+                        <div class="form-group">
+                            <label>
+                                <span class="label-icon">&#x1F4C4;</span>
+                                Projektplan importieren
+                            </label>
+                            <div class="upload-zone" id="upload-zone">
+                                <input type="file" id="file-input" accept=".pdf,.docx,.doc,.txt,.md" hidden>
+                                <span class="upload-icon">&#x1F4C1;</span>
+                                <p>PDF / DOCX hier ablegen</p>
+                                <p>oder klicken zum Auswaehlen</p>
+                                <small>Unterstuetzte Formate: .pdf, .docx, .doc, .txt, .md</small>
+                            </div>
+                            <div class="upload-status" id="upload-status"></div>
+                        </div>
+
+                        <div class="separator">
+                            <span>ODER MANUELL EINGEBEN</span>
+                        </div>
+
+                        <!-- Projektplan Textarea -->
                         <div class="form-group">
                             <label for="projektplan">
-                                <span class="label-icon">📋</span>
+                                <span class="label-icon">&#x1F4CB;</span>
                                 Projektplan
                                 <span class="label-required">*</span>
                             </label>
@@ -68,7 +199,14 @@
                                 id="projektplan"
                                 name="projektplan"
                                 class="form-textarea"
-                                placeholder="Beschreibe dein Projekt in eigenen Worten:&#10;&#10;- Was soll gebaut werden?&#10;- Welche Features sind wichtig?&#10;- Gibt es spezielle Anforderungen?&#10;- Welche Technologien möchtest du nutzen?&#10;&#10;Je detaillierter, desto besser wird der Enterprise-Plan!"
+                                placeholder="Beschreibe dein Projekt in eigenen Worten:
+
+- Was soll gebaut werden?
+- Welche Features sind wichtig?
+- Gibt es spezielle Anforderungen?
+- Welche Technologien moechtest du nutzen?
+
+Je detaillierter, desto besser wird der Enterprise-Plan!"
                                 required
                                 rows="12"
                             >{{ projektplan if projektplan else '' }}</textarea>
@@ -77,15 +215,15 @@
 
                         <!-- Info-Box -->
                         <div class="form-info">
-                            <div class="info-icon">🤖</div>
+                            <div class="info-icon">&#x1F916;</div>
                             <div class="info-text">
-                                <strong>Was passiert als Nächstes?</strong>
+                                <strong>Was passiert als Naechstes?</strong>
                                 <ul>
-                                    <li>Sonnet 4.5 analysiert deinen Plan</li>
+                                    <li>Opus 4.5 analysiert deinen Plan</li>
                                     <li>Gemini 3 Pro gibt Feedback</li>
-                                    <li>Sonnet erstellt einen Enterprise-Plan</li>
-                                    <li>Gemini prüft die Qualität</li>
-                                    <li>Sonnet verbessert den Plan</li>
+                                    <li>Opus erstellt einen Enterprise-Plan</li>
+                                    <li>Gemini prueft die Qualitaet</li>
+                                    <li>Opus verbessert den Plan</li>
                                     <li>Gemini bewertet das Ergebnis</li>
                                 </ul>
                             </div>
@@ -94,10 +232,10 @@
                         <!-- Buttons -->
                         <div class="form-actions">
                             <a href="/" class="btn btn-secondary">
-                                ← Abbrechen
+                                &#x2190; Abbrechen
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                🚀 Enterprise-Plan erstellen
+                                &#x1F680; Enterprise-Plan erstellen
                             </button>
                         </div>
                     </form>
@@ -106,8 +244,105 @@
         </main>
 
         <footer>
-            <p>NEXUS OVERLORD v2.0 - Powered by Sonnet 4.5 & Gemini 3 Pro</p>
+            <p>NEXUS OVERLORD v2.0 - Powered by Opus 4.5 & Gemini 3 Pro</p>
         </footer>
     </div>
+
+    <script>
+        // Upload Zone Elements
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const textarea = document.getElementById('projektplan');
+        const uploadStatus = document.getElementById('upload-status');
+
+        // Click to open file dialog
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // Drag & Drop Events
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) await uploadFile(file);
+        });
+
+        // File Select Event
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) await uploadFile(file);
+        });
+
+        // Upload Function
+        async function uploadFile(file) {
+            // Validate file type
+            const allowedTypes = ['.pdf', '.docx', '.doc', '.txt', '.md'];
+            const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!allowedTypes.includes(fileExt)) {
+                showStatus('error', 'Nicht unterstuetztes Format. Erlaubt: PDF, DOCX, TXT, MD');
+                return;
+            }
+
+            // Show uploading state
+            uploadZone.classList.add('uploading');
+            showStatus('', '<span class="loading-spinner"></span> Datei wird verarbeitet...');
+            uploadStatus.style.display = 'block';
+            uploadStatus.className = 'upload-status';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/projekt/upload-plan', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Insert text into textarea
+                    textarea.value = data.text;
+                    showStatus('success', '&#x2705; "' + data.filename + '" erfolgreich importiert (' + data.chars + ' Zeichen)');
+
+                    // Scroll to textarea
+                    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    textarea.focus();
+                } else {
+                    showStatus('error', '&#x274C; ' + data.error);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showStatus('error', '&#x274C; Upload fehlgeschlagen. Bitte versuche es erneut.');
+            } finally {
+                uploadZone.classList.remove('uploading');
+                fileInput.value = ''; // Reset file input
+            }
+        }
+
+        // Show Status Message
+        function showStatus(type, message) {
+            uploadStatus.innerHTML = message;
+            uploadStatus.className = 'upload-status' + (type ? ' ' + type : '');
+            uploadStatus.style.display = 'block';
+
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    uploadStatus.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
 </body>
 </html>
